@@ -29,7 +29,7 @@ import Stats from "./fps.js";
 import getWebGLContext from "./getWebGLContext.js";
 import Material, { compileShader, Program } from "./Material.js";
 import startGUI, { isMobile } from "./startGUI.js";
-import { correctDeltaX, correctDeltaY, generateColor, getResolution, normalizeColor, scaleByPixelRatio, wrap } from "./utils.js";
+import { clamp, correctDeltaX, correctDeltaY, generateColor, getResolution, normalizeColor, scaleByPixelRatio, wrap } from "./utils.js";
 
 // Simulation section
 
@@ -40,11 +40,11 @@ let config = {
   SIM_RESOLUTION: 128,
   DYE_RESOLUTION: 1024,
   CAPTURE_RESOLUTION: 512,
-  DENSITY_DISSIPATION: 1,
-  VELOCITY_DISSIPATION: 0.2,
+  DENSITY_DISSIPATION: 0.3,
+  VELOCITY_DISSIPATION: 0.3,
   PRESSURE: 0.8,
   PRESSURE_ITERATIONS: 20,
-  CURL: 30,
+  CURL: 10,
   SPLAT_RADIUS: 0.25,
   SPLAT_FORCE: 6000,
   SHADING: true,
@@ -750,6 +750,12 @@ updateKeywords();
 initFramebuffers();
 multipleSplats((Math.random() * 20) + 5);
 
+const ball = {
+  x: 0.5,
+  y: 0.5,
+  elm: document.querySelector('.ball') as HTMLDivElement
+};
+
 let lastUpdateTime = window.performance.now();
 let colorUpdateTimer = 0.0;
 
@@ -763,6 +769,7 @@ function update(now: number) {
   stats.begin()
   const dt = (now - lastUpdateTime) / 1000;
   lastUpdateTime = now;
+  updateBall(dt)
   if (resizeCanvas())
     initFramebuffers();
   updateColors(dt);
@@ -772,6 +779,28 @@ function update(now: number) {
   render(null);
   stats.end();
   requestAnimationFrame(update);
+}
+
+function updateBall(dt: number) {
+  const SIZE = 4;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, velocity.read.fbo);
+  var velocityPixels = new Float32Array(SIZE * SIZE * 4);
+  gl.readPixels(velocity.width * ball.x - SIZE / 2, velocity.height * ball.y - SIZE / 2, SIZE, SIZE, gl.RGBA, gl.FLOAT, velocityPixels);
+
+  let vx = 0, vy = 0;
+  for (let i = 0; i < velocityPixels.length; i += 4) {
+    vx += velocityPixels[i];
+    vy += velocityPixels[i + 1];
+  }
+
+  vx /= SIZE * SIZE;
+  vy /= SIZE * SIZE;
+
+  ball.x += vx / velocity.width * dt;
+  ball.y += vy / velocity.height * dt;
+  ball.x = clamp(ball.x, 0.01, 0.99);
+  ball.y = clamp(ball.y, 0.01, 0.99);
+  ball.elm.style.transform = `translate(${ball.x * 100}vw, ${100 - ball.y * 100}vh)`;
 }
 
 function resizeCanvas() {

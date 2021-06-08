@@ -87,3 +87,7 @@ export function getResolution(gl: WebGLContext, resolution: number) {
   else
     return { width: min, height: max };
 }
+
+export function clamp(v: number, min = 0, max = 1) {
+  return Math.max(min, Math.min(v, max));
+}

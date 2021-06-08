@@ -64,11 +64,22 @@
                 position: sticky;
                 bottom: 27px;
             }
+
+            .ball {
+              width: 1vw;
+              height: 1vw;
+              border-radius: .5vw;
+              background-color: red;
+              position: absolute;
+              top: -.5vw;
+              left: -.5vw;
+              transform: translate(50vw, 50vh);
+            }
         </style>
     </head>
     <body>
         <canvas></canvas>
-
+        <div class="ball"></div>
         <script src="./js/index.js" type="module"></script>
     </body>
 </html>
