@@ -25,6 +25,7 @@ SOFTWARE.
 import createDoubleFBO, { DoubleFBO } from "./createDoubleFBO.js";
 import createFBO, { FBO } from "./createFBO.js";
 import createTextureAsync from "./createTextureAsync.js";
+import Stats from "./fps.js";
 import getWebGLContext from "./getWebGLContext.js";
 import Material, { compileShader, Program } from "./Material.js";
 import startGUI, { isMobile } from "./startGUI.js";
@@ -751,9 +752,15 @@ multipleSplats((Math.random() * 20) + 5);
 
 let lastUpdateTime = window.performance.now();
 let colorUpdateTimer = 0.0;
+
+var stats = Stats();
+stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+document.body.appendChild(stats.dom);
+
 requestAnimationFrame(update);
 
 function update(now: number) {
+  stats.begin()
   const dt = (now - lastUpdateTime) / 1000;
   lastUpdateTime = now;
   if (resizeCanvas())
@@ -763,6 +770,7 @@ function update(now: number) {
   if (!config.PAUSED)
     step(dt);
   render(null);
+  stats.end();
   requestAnimationFrame(update);
 }
 
@@ -849,9 +857,7 @@ function step(dt: number) {
   advectionProgram.uniforms.texelSize = [velocity.texelSizeX, velocity.texelSizeY];
   if (!ext.supportLinearFiltering)
     advectionProgram.uniforms.dyeTexelSize = [velocity.texelSizeX, velocity.texelSizeY];
-  let velocityId = velocity.read.attach(0);
-  advectionProgram.uniforms.uVelocity = velocityId;
-  advectionProgram.uniforms.uSource = velocityId;
+  advectionProgram.uniforms.uVelocity = advectionProgram.uniforms.uSource = velocity.read.attach(0);
   advectionProgram.uniforms.dt = dt;
   advectionProgram.uniforms.dissipation = config.VELOCITY_DISSIPATION;
   blit(velocity.write);
