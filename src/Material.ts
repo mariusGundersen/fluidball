@@ -75,6 +75,7 @@ export function getUniforms(gl: WebGLContext, program: WebGLProgram) {
   for (let i = 0; i < uniformCount; i++) {
     const { name, type } = gl.getActiveUniform(program, i) as WebGLActiveInfo;
     const location = gl.getUniformLocation(program, name) as WebGLUniformLocation;
+
     Object.defineProperty(uniforms, name, {
       get() {
         return gl.getUniform(program, location);
@@ -93,7 +94,7 @@ export function getUniforms(gl: WebGLContext, program: WebGLProgram) {
           case gl.FLOAT_VEC4:
             return gl.uniform4f(location, v[0], v[1], v[2], v[3]);
           default:
-            throw new Error(`Not implemented for type ${type}`);
+            throw new Error(`Not implemented for type ${type} (${name})`);
         }
       }
     });

@@ -64,21 +64,34 @@ let config = {
 }
 
 class Pointer {
-  id = -1;
-  texcoordX = 0;
-  texcoordY = 0;
-  prevTexcoordX = 0;
-  prevTexcoordY = 0;
+  texcoordX: number;
+  texcoordY: number;
+  prevTexcoordX: number;
+  prevTexcoordY: number;
   deltaX = 0;
   deltaY = 0;
-  down = false;
   moved = false;
-  color = { r: 30, g: 0, b: 300 };
+  color = generateColor();
+  constructor(posX: number, posY: number) {
+    this.texcoordX = posX / canvas.width;
+    this.texcoordY = 1.0 - posY / canvas.height;
+    this.prevTexcoordX = this.texcoordX;
+    this.prevTexcoordY = this.texcoordY;
+  }
+
+  updatePos(posX: number, posY: number) {
+    this.prevTexcoordX = this.texcoordX;
+    this.prevTexcoordY = this.texcoordY;
+    this.texcoordX = posX / canvas.width;
+    this.texcoordY = 1.0 - posY / canvas.height;
+    this.deltaX = correctDeltaX(canvas, this.texcoordX - this.prevTexcoordX);
+    this.deltaY = correctDeltaY(canvas, this.texcoordY - this.prevTexcoordY);
+    this.moved = Math.abs(this.deltaX) > 0 || Math.abs(this.deltaY) > 0;
+  }
 }
 
-let pointers: Pointer[] = [];
-let splatStack: number[] = [];
-pointers.push(new Pointer());
+const pointers = new Map<number, Pointer>();
+const splatStack: number[] = [];
 
 const { gl, ext } = getWebGLContext(canvas);
 
@@ -615,7 +628,7 @@ let divergence: FBO;
 let curl: FBO;
 let pressure: DoubleFBO;
 let bloom: FBO;
-let bloomFramebuffers: any[] = [];
+let bloomFramebuffers: FBO[] = [];
 let sunrays: FBO;
 let sunraysTemp: FBO;
 
@@ -703,15 +716,16 @@ function initSunraysFramebuffers() {
   sunraysTemp = createFBO(gl, res.width, res.height, r.internalFormat, r.format, texType, filtering);
 }
 
-function resizeFBO(target: FBO, w: any, h: any, internalFormat: any, format: any, type: any, param: any) {
+function resizeFBO(target: FBO, w: number, h: number, internalFormat: number, format: number, type: number, param: number) {
   let newFBO = createFBO(gl, w, h, internalFormat, format, type, param);
   copyProgram.bind();
   copyProgram.uniforms.uTexture = target.attach(0);
   blit(newFBO);
+  gl.deleteTexture(target.texture);
   return newFBO;
 }
 
-function resizeDoubleFBO(target: DoubleFBO, w: number, h: number, internalFormat: any, format: any, type: any, param: any) {
+function resizeDoubleFBO(target: DoubleFBO, w: number, h: number, internalFormat: number, format: number, type: number, param: number) {
   if (target.width == w && target.height == h)
     return target;
   target.read = resizeFBO(target.read, w, h, internalFormat, format, type, param);
@@ -735,12 +749,13 @@ updateKeywords();
 initFramebuffers();
 multipleSplats((Math.random() * 20) + 5);
 
-let lastUpdateTime = Date.now();
+let lastUpdateTime = window.performance.now();
 let colorUpdateTimer = 0.0;
-update();
+requestAnimationFrame(update);
 
-function update() {
-  const dt = calcDeltaTime();
+function update(now: number) {
+  const dt = (now - lastUpdateTime) / 1000;
+  lastUpdateTime = now;
   if (resizeCanvas())
     initFramebuffers();
   updateColors(dt);
@@ -749,14 +764,6 @@ function update() {
     step(dt);
   render(null);
   requestAnimationFrame(update);
-}
-
-function calcDeltaTime() {
-  let now = Date.now();
-  let dt = (now - lastUpdateTime) / 1000;
-  dt = Math.min(dt, 0.016666);
-  lastUpdateTime = now;
-  return dt;
 }
 
 function resizeCanvas() {
@@ -882,13 +889,13 @@ function render(target: FBO | null) {
   drawDisplay(target);
 }
 
-function drawColor(target: any, color: { r: any; g: any; b: any; }) {
+function drawColor(target: FBO | null, color: { r: any; g: any; b: any; }) {
   colorProgram.bind();
   colorProgram.uniforms.color = [color.r, color.g, color.b, 1];
   blit(target);
 }
 
-function drawCheckerboard(target: any) {
+function drawCheckerboard(target: FBO | null) {
   checkerboardProgram.bind();
   checkerboardProgram.uniforms.aspectRatio = canvas.width / canvas.height;
   blit(target);
@@ -913,7 +920,7 @@ function drawDisplay(target: FBO | null) {
   blit(target);
 }
 
-function applyBloom(source: FBO, destination: any) {
+function applyBloom(source: FBO, destination: FBO) {
   if (bloomFramebuffers.length < 2)
     return;
 
@@ -959,7 +966,7 @@ function applyBloom(source: FBO, destination: any) {
   blit(destination);
 }
 
-function applySunrays(source: FBO, mask: FBO, destination: any) {
+function applySunrays(source: FBO, mask: FBO, destination: FBO) {
   gl.disable(gl.BLEND);
   sunraysMaskProgram.bind();
   sunraysMaskProgram.uniforms.uTexture = source.attach(0);
@@ -1004,7 +1011,7 @@ function multipleSplats(amount: number) {
   }
 }
 
-function splat(x: number, y: number, dx: number, dy: number, color: { r: any; g: any; b: any; }) {
+function splat(x: number, y: number, dx: number, dy: number, color: { r: number; g: number; b: number; }) {
   splatProgram.bind();
   splatProgram.uniforms.uTarget = velocity.read.attach(0);
   splatProgram.uniforms.aspectRatio = canvas.width / canvas.height;
@@ -1027,58 +1034,32 @@ function correctRadius(radius: number) {
   return radius;
 }
 
-canvas.addEventListener('mousedown', e => {
+canvas.addEventListener('pointerdown', e => {
   let posX = scaleByPixelRatio(e.offsetX);
   let posY = scaleByPixelRatio(e.offsetY);
-  let pointer = pointers.find(p => p.id == -1);
-  if (pointer == null)
-    pointer = new Pointer();
-  updatePointerDownData(pointer, -1, posX, posY);
-});
 
-canvas.addEventListener('mousemove', e => {
-  let pointer = pointers[0];
-  if (!pointer.down) return;
+  pointers.set(e.pointerId, new Pointer(posX, posY));
+
+  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  e.preventDefault();
+}, { capture: false, });
+
+canvas.addEventListener('pointermove', e => {
+  const pointer = pointers.get(e.pointerId);
+
+  if (!pointer) return;
+
   let posX = scaleByPixelRatio(e.offsetX);
   let posY = scaleByPixelRatio(e.offsetY);
-  updatePointerMoveData(pointer, posX, posY);
-});
 
-window.addEventListener('mouseup', () => {
-  updatePointerUpData(pointers[0]);
-});
+  pointer.updatePos(posX, posY);
 
-canvas.addEventListener('touchstart', e => {
+  e.stopPropagation();
   e.preventDefault();
-  const touches = e.targetTouches;
-  while (touches.length >= pointers.length)
-    pointers.push(new Pointer());
-  for (let i = 0; i < touches.length; i++) {
-    let posX = scaleByPixelRatio(touches[i].pageX);
-    let posY = scaleByPixelRatio(touches[i].pageY);
-    updatePointerDownData(pointers[i + 1], touches[i].identifier, posX, posY);
-  }
-});
+}, { capture: false, });
 
-canvas.addEventListener('touchmove', e => {
-  e.preventDefault();
-  const touches = e.targetTouches;
-  for (let i = 0; i < touches.length; i++) {
-    let pointer = pointers[i + 1];
-    if (!pointer.down) continue;
-    let posX = scaleByPixelRatio(touches[i].pageX);
-    let posY = scaleByPixelRatio(touches[i].pageY);
-    updatePointerMoveData(pointer, posX, posY);
-  }
-}, false);
-
-window.addEventListener('touchend', e => {
-  const touches = e.changedTouches;
-  for (let i = 0; i < touches.length; i++) {
-    let pointer = pointers.find(p => p.id == touches[i].identifier);
-    if (pointer == null) continue;
-    updatePointerUpData(pointer);
-  }
+canvas.addEventListener('lostpointercapture', e => {
+  pointers.delete(e.pointerId)
 });
 
 window.addEventListener('keydown', e => {
@@ -1087,30 +1068,3 @@ window.addEventListener('keydown', e => {
   if (e.key === ' ')
     splatStack.push((Math.random() * 20) + 5);
 });
-
-function updatePointerDownData(pointer: Pointer, id: number, posX: number, posY: number) {
-  pointer.id = id;
-  pointer.down = true;
-  pointer.moved = false;
-  pointer.texcoordX = posX / canvas.width;
-  pointer.texcoordY = 1.0 - posY / canvas.height;
-  pointer.prevTexcoordX = pointer.texcoordX;
-  pointer.prevTexcoordY = pointer.texcoordY;
-  pointer.deltaX = 0;
-  pointer.deltaY = 0;
-  pointer.color = generateColor();
-}
-
-function updatePointerMoveData(pointer: Pointer, posX: number, posY: number) {
-  pointer.prevTexcoordX = pointer.texcoordX;
-  pointer.prevTexcoordY = pointer.texcoordY;
-  pointer.texcoordX = posX / canvas.width;
-  pointer.texcoordY = 1.0 - posY / canvas.height;
-  pointer.deltaX = correctDeltaX(canvas, pointer.texcoordX - pointer.prevTexcoordX);
-  pointer.deltaY = correctDeltaY(canvas, pointer.texcoordY - pointer.prevTexcoordY);
-  pointer.moved = Math.abs(pointer.deltaX) > 0 || Math.abs(pointer.deltaY) > 0;
-}
-
-function updatePointerUpData(pointer: Pointer) {
-  pointer.down = false;
-}
