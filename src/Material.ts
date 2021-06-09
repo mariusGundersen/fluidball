@@ -40,9 +40,9 @@ export default class Material<VS extends string, FS extends string> {
 }
 
 export class Program<VS extends string, FS extends string> {
-  uniforms: GetAllUniforms<VS> & GetAllUniforms<FS>;
-  program: WebGLProgram | null;
-  gl: WebGLContext;
+  readonly uniforms: GetAllUniforms<VS> & GetAllUniforms<FS>;
+  readonly program: WebGLProgram | null;
+  readonly gl: WebGLContext;
   constructor(gl: WebGLContext, vertexShader: CompiledShader<VS>, fragmentShader: CompiledShader<FS>) {
     this.gl = gl;
     this.program = createProgram(gl, vertexShader.shader, fragmentShader.shader);

@@ -44,13 +44,12 @@ export function HSVtoRGB(h: number, s: number, v: number) {
   };
 }
 
-export function normalizeColor(input: { r: any; g: any; b: any; }) {
-  let output = {
-    r: input.r / 255,
-    g: input.g / 255,
-    b: input.b / 255
+export function normalizeColor({ r, g, b }: { r: number; g: number; b: number; }) {
+  return {
+    r: r / 255,
+    g: g / 255,
+    b: b / 255
   };
-  return output;
 }
 
 export function wrap(value: number, min: number, max: number) {
