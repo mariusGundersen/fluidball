@@ -272,13 +272,14 @@ const splatShader = compileShader(gl, gl.FRAGMENT_SHADER, `
     uniform vec3 color;
     uniform vec2 point;
     uniform float radius;
+    uniform float sourceMult;
 
     void main () {
         vec2 p = vUv - point.xy;
         p.x *= aspectRatio;
         vec3 splat = exp(-dot(p, p) / radius) * color;
         vec3 base = texture2D(uTarget, vUv).xyz;
-        gl_FragColor = vec4(base + splat, 1.0);
+        gl_FragColor = vec4(sourceMult*base + splat, 1.0);
     }
 `);
 
@@ -619,13 +620,17 @@ function update(now: number) {
   stats.begin()
   const dt = (now - lastUpdateTime) / 1000;
   lastUpdateTime = now;
-  updateBall(dt)
+
   if (resizeCanvas())
     initFramebuffers();
   updateColors(dt);
   applyInputs();
-  if (!config.PAUSED)
+  if (!config.PAUSED && !document.hidden) {
+    updateBall(dt)
     step(dt);
+  } else {
+    console.log(dt);
+  }
   render(screen);
   stats.end();
   requestAnimationFrame(update);
@@ -686,6 +691,9 @@ function applyInputs() {
       splatPointer(p);
     }
   });
+
+  sourceDrain(0.5, 0.1, -200);
+  //sourceDrain(0.5, 0.9, 2);
 }
 
 function step(dt: number) {
@@ -753,7 +761,7 @@ function render(target: DrawTarget) {
   if (config.BLOOM)
     bloomProgram.run(dye.read, bloomFramebuffers, bloom, config, quad);
   if (config.SUNRAYS) {
-    sunraysProgram.run(dye.read, dye.write, config.SUNRAYS_WEIGHT, sunrays, quad);
+    sunraysProgram.run(dye.read, dye.write, config.SUNRAYS_WEIGHT, [ball.x, ball.y], sunrays, quad);
     blurProgram.run(sunrays, sunraysTemp, 1, quad);
   }
 
@@ -825,13 +833,35 @@ function multipleSplats(amount: number) {
   }
 }
 
+function sourceDrain(x: number, y: number, p: number) {
+  splatProgram.bind();
+  splatProgram.uniforms.aspectRatio = canvas.width / canvas.height;
+  splatProgram.uniforms.radius = correctRadius(config.SPLAT_RADIUS / 100.0);
+  splatProgram.uniforms.point = [x, y];
+  splatProgram.uniforms.sourceMult = 0.5;
+
+  splatProgram.uniforms.uTarget = pressure.read.attach(0);
+  splatProgram.uniforms.color = [p, 0.0, 0.0];
+  blit(pressure.write);
+  pressure.swap();
+
+  if (p > 0) {
+    splatProgram.uniforms.uTarget = dye.read.attach(0);
+    splatProgram.uniforms.color = [1, 0, 0];
+    blit(dye.write);
+    dye.swap();
+  }
+}
+
 function splat(x: number, y: number, dx: number, dy: number, color: { r: number; g: number; b: number; }) {
   splatProgram.bind();
-  splatProgram.uniforms.uTarget = velocity.read.attach(0);
   splatProgram.uniforms.aspectRatio = canvas.width / canvas.height;
-  splatProgram.uniforms.point = [x, y];
-  splatProgram.uniforms.color = [dx, dy, 0.0];
   splatProgram.uniforms.radius = correctRadius(config.SPLAT_RADIUS / 100.0);
+  splatProgram.uniforms.point = [x, y];
+  splatProgram.uniforms.sourceMult = 1;
+
+  splatProgram.uniforms.uTarget = velocity.read.attach(0);
+  splatProgram.uniforms.color = [dx, dy, 0.0];
   blit(velocity.write);
   velocity.swap();
 

@@ -26,6 +26,7 @@ precision highp sampler2D;
 varying vec2 vUv;
 uniform sampler2D uTexture;
 uniform float weight;
+uniform vec2 center;
 
 #define ITERATIONS 16
 
@@ -35,7 +36,7 @@ void main () {
     float Exposure = 0.7;
 
     vec2 coord = vUv;
-    vec2 dir = vUv - 0.5;
+    vec2 dir = vUv - center;
 
     dir *= 1.0 / float(ITERATIONS) * Density;
     float illuminationDecay = 1.0;
@@ -64,15 +65,16 @@ export default class SunraysProgram {
     this.sunraysProgram = new Program(gl, baseVertexShader, compileShader(gl, gl.FRAGMENT_SHADER, sunraysShader));
   }
 
-  run(source: FBO, mask: FBO, weight: number, destination: FBO, quad: Quad) {
+  run(source: FBO, mask: FBO, weight: number, [x, y]: [number, number], destination: FBO, quad: Quad) {
     this.gl.disable(this.gl.BLEND);
     this.sunraysMaskProgram.bind();
     this.sunraysMaskProgram.uniforms.uTexture = source.attach(0);
     mask.drawTo(quad);
 
     this.sunraysProgram.bind();
-    this.sunraysProgram.uniforms.weight = weight; //config.SUNRAYS_WEIGHT;
+    this.sunraysProgram.uniforms.weight = weight;
     this.sunraysProgram.uniforms.uTexture = mask.attach(0);
+    this.sunraysProgram.uniforms.center = [x, y];
     destination.drawTo(quad);
   }
 }
