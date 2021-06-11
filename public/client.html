@@ -1,0 +1,56 @@
+<html>
+  <body>
+    <style>
+      #outgoing {
+        width: 600px;
+        word-wrap: break-word;
+        white-space: normal;
+      }
+    </style>
+    <form>
+      <input id="incoming">
+
+      </input>
+      <button type="submit">submit</button>
+    </form>
+    <pre id="outgoing"></pre>
+    <script src="simplepeer.min.js"></script>
+    <script>
+      const p = new SimplePeer({
+        initiator: false,
+        trickle: false,
+        objectMode: true
+      })
+
+      p.on('error', err => console.log('error', err))
+
+      p.on('signal', data => {
+        console.log('SIGNAL', JSON.stringify(data))
+        fetch('/api/answer?key='+document.querySelector('#incoming').value, {
+          method: 'post',
+          body: JSON.stringify(data),
+          headers: {
+            'content-type': 'application/json'
+          }
+        })
+      })
+
+      document.querySelector('form').addEventListener('submit', async ev => {
+        ev.preventDefault()
+
+        var response = await fetch('/api/connect?key='+document.querySelector('#incoming').value).then(r => r.json());
+
+        p.signal(response);
+      })
+
+      p.on('connect', () => {
+        console.log('CONNECT')
+        p.send('whatever' + Math.random())
+      })
+
+      p.on('data', data => {
+        console.log('data: ' + data)
+      })
+    </script>
+  </body>
+</html>
