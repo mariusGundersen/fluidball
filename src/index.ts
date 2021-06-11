@@ -34,7 +34,7 @@ import CurlProgram from "./programs/curl.js";
 import SunraysProgram from "./programs/sunrays.js";
 import Quad from "./Quad.js";
 import startGUI, { isMobile } from "./startGUI.js";
-import { clamp, correctDeltaX, correctDeltaY, generateColor, getResolution, HSVtoRGB, normalizeColor, scaleByPixelRatio, wrap } from "./utils.js";
+import { clamp, correctDeltaX, correctDeltaY, dim, generateColor, getResolution, HSVtoRGB, normalizeColor, scaleByPixelRatio, wrap } from "./utils.js";
 
 // Simulation section
 
@@ -732,21 +732,42 @@ function applyInputs(dt: number) {
 
   players[0].dx = keysDown.has('KeyA') ? -1 : keysDown.has('KeyD') ? +1 : 0;
   players[0].dy = keysDown.has('KeyW') ? +1 : keysDown.has('KeyS') ? -1 : 0;
+  players[0].active = keysDown.has('Space');
 
   for (const player of players) {
-    let dx = player.dx * dt * 0.1;
-    let dy = player.dy * dt * 0.1 * aspectRatio;
-    splat(player.x, player.y, dx * 10, dy * 10, player.color, 200);
+    let dx = player.dx * dt;
+    let dy = player.dy * dt * aspectRatio;
+
+    if (player.active) {
+      splat(player.x, player.y, dx, dy, player.color, player.charge);
+    } else if (player.charge) {
+      splat(player.x, player.y, player.charge, 0, player.color, 100);
+    } else {
+      splat(player.x, player.y, 0, 0, dim(player.color), 5000);
+    }
+
     if (dx * dy != 0) {
       dx *= Math.SQRT1_2;
       dy *= Math.SQRT1_2;
     }
+
+    dx /= 10;
+    dy /= 10;
+
     player.x += dx;
     player.y += dy;
     player.x = clamp(player.x, 0.01, 0.99);
     player.y = clamp(player.y, 0.01, 0.99);
-    sourceDrain(player.x + dx * 2, player.y + dy * 2, -150);
 
+    sourceDrain(player.x + dx * 2, player.y + dy * 2, player.active ? -150 : -1);
+
+    if (player.active) {
+      player.charge += dt * 1_000;
+      player.charge *= 0.9;
+      console.log(player.charge);
+    } else {
+      player.charge = 0;
+    }
 
     // splat(player.x, player.y, (0.5 - player.x) * 500, 0, player.color);
 

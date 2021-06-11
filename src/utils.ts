@@ -20,6 +20,14 @@ export function generateColor() {
   return c;
 }
 
+export function dim({ r, g, b }: { r: number, g: number, b: number }, v = 4) {
+  return {
+    r: r / v,
+    g: g / v,
+    b: b / v
+  }
+}
+
 export function HSVtoRGB(h: number, s: number, v: number) {
   let r = 0, g = 0, b = 0, i, f, p, q, t;
   i = Math.floor(h * 6);
