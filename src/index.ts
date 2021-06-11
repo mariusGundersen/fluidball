@@ -34,7 +34,7 @@ import CurlProgram from "./programs/curl.js";
 import SunraysProgram from "./programs/sunrays.js";
 import Quad from "./Quad.js";
 import startGUI, { isMobile } from "./startGUI.js";
-import { clamp, correctDeltaX, correctDeltaY, generateColor, getResolution, normalizeColor, scaleByPixelRatio, wrap } from "./utils.js";
+import { clamp, correctDeltaX, correctDeltaY, generateColor, getResolution, HSVtoRGB, normalizeColor, scaleByPixelRatio, wrap } from "./utils.js";
 
 // Simulation section
 
@@ -56,7 +56,7 @@ let config = {
   COLORFUL: true,
   COLOR_UPDATE_SPEED: 10,
   PAUSED: false,
-  BACK_COLOR: { r: 0, g: 0, b: 0 },
+  BACK_COLOR: { r: 0, g: 50, b: 0 },
   TRANSPARENT: false,
   BLOOM: true,
   BLOOM_ITERATIONS: 8,
@@ -585,13 +585,49 @@ function updateKeywords() {
 
 updateKeywords();
 initFramebuffers();
-multipleSplats((Math.random() * 20) + 5);
+//multipleSplats((Math.random() * 20) + 5);
 
 const ball = {
   x: 0.5,
   y: 0.5,
   elm: document.querySelector('.ball') as HTMLDivElement
 };
+
+const keysDown = new Set<string>();
+
+interface Player {
+  color: { r: number; g: number; b: number; };
+  dy: number;
+  dx: number;
+  active: boolean,
+  charge: number,
+  x: number,
+  y: number,
+  elm: HTMLDivElement
+}
+
+const players: Player[] = [
+  {
+    x: 0.2,
+    y: 0.5,
+    dx: 0,
+    dy: 0,
+    active: false,
+    charge: 0,
+    elm: document.querySelector('#player1') as HTMLDivElement,
+    color: HSVtoRGB(0, 0.9, 0.1) //{ r: 255, g: 1, b: 1 }
+  },
+  {
+    x: 0.8,
+    y: 0.5,
+    dx: 0,
+    dy: 0,
+    active: false,
+    charge: 0,
+    elm: document.querySelector('#player2') as HTMLDivElement,
+    color: HSVtoRGB(2 / 3, 0.9, 0.1)//{ r: 1, g: 1, b: 255 }
+  }
+];
 
 const screen: DrawTarget = {
   get width() {
@@ -624,7 +660,7 @@ function update(now: number) {
   if (resizeCanvas())
     initFramebuffers();
   updateColors(dt);
-  applyInputs();
+  applyInputs(dt);
   if (!config.PAUSED && !document.hidden) {
     updateBall(dt)
     step(dt);
@@ -681,7 +717,7 @@ function updateColors(dt: number) {
   }
 }
 
-function applyInputs() {
+function applyInputs(dt: number) {
   if (splatStack.length > 0)
     multipleSplats(splatStack.pop() as number);
 
@@ -692,8 +728,31 @@ function applyInputs() {
     }
   });
 
-  sourceDrain(0.5, 0.1, -200);
-  //sourceDrain(0.5, 0.9, 2);
+  const aspectRatio = canvas.width / canvas.height;
+
+  players[0].dx = keysDown.has('KeyA') ? -1 : keysDown.has('KeyD') ? +1 : 0;
+  players[0].dy = keysDown.has('KeyW') ? +1 : keysDown.has('KeyS') ? -1 : 0;
+
+  for (const player of players) {
+    let dx = player.dx * dt * 0.1;
+    let dy = player.dy * dt * 0.1 * aspectRatio;
+    splat(player.x, player.y, dx * 10, dy * 10, player.color, 200);
+    if (dx * dy != 0) {
+      dx *= Math.SQRT1_2;
+      dy *= Math.SQRT1_2;
+    }
+    player.x += dx;
+    player.y += dy;
+    player.x = clamp(player.x, 0.01, 0.99);
+    player.y = clamp(player.y, 0.01, 0.99);
+    sourceDrain(player.x + dx * 2, player.y + dy * 2, -150);
+
+
+    // splat(player.x, player.y, (0.5 - player.x) * 500, 0, player.color);
+
+
+    player.elm.style.transform = `translate(${player.x * 100}vw, ${100 - player.y * 100}vh)`;
+  }
 }
 
 function step(dt: number) {
@@ -838,7 +897,7 @@ function sourceDrain(x: number, y: number, p: number) {
   splatProgram.uniforms.aspectRatio = canvas.width / canvas.height;
   splatProgram.uniforms.radius = correctRadius(config.SPLAT_RADIUS / 100.0);
   splatProgram.uniforms.point = [x, y];
-  splatProgram.uniforms.sourceMult = 0.5;
+  splatProgram.uniforms.sourceMult = 1;
 
   splatProgram.uniforms.uTarget = pressure.read.attach(0);
   splatProgram.uniforms.color = [p, 0.0, 0.0];
@@ -853,10 +912,10 @@ function sourceDrain(x: number, y: number, p: number) {
   }
 }
 
-function splat(x: number, y: number, dx: number, dy: number, color: { r: number; g: number; b: number; }) {
+function splat(x: number, y: number, dx: number, dy: number, color: { r: number; g: number; b: number; }, radius = 100) {
   splatProgram.bind();
   splatProgram.uniforms.aspectRatio = canvas.width / canvas.height;
-  splatProgram.uniforms.radius = correctRadius(config.SPLAT_RADIUS / 100.0);
+  splatProgram.uniforms.radius = correctRadius(config.SPLAT_RADIUS / radius);
   splatProgram.uniforms.point = [x, y];
   splatProgram.uniforms.sourceMult = 1;
 
@@ -909,6 +968,10 @@ canvas.addEventListener('lostpointercapture', e => {
 window.addEventListener('keydown', e => {
   if (e.code === 'KeyP')
     config.PAUSED = !config.PAUSED;
-  if (e.key === ' ')
-    splatStack.push((Math.random() * 20) + 5);
+
+  keysDown.add(e.code);
 });
+
+window.addEventListener('keyup', e => {
+  keysDown.delete(e.code);
+})

@@ -65,20 +65,35 @@
                 bottom: 27px;
             }
 
-            .ball {
+            .ball,
+            .player {
               width: 1vw;
               height: 1vw;
               border-radius: .5vw;
-              background-color: red;
+              background-color: black;
+              box-shadow: 0 0 .5vw white;
               position: absolute;
               top: -.5vw;
               left: -.5vw;
               transform: translate(50vw, 50vh);
             }
+
+            #player1{
+              background-color: red;
+              box-shadow: 0 0 .5vw black;
+              display: none;
+            }
+
+            #player2{
+              background-color: blue;
+              box-shadow: 0 0 .5vw black;
+            }
         </style>
     </head>
     <body>
         <canvas></canvas>
+        <div class="player" id="player1"></div>
+        <div class="player" id="player2"></div>
         <div class="ball"></div>
         <script src="./js/index.js" type="module"></script>
     </body>
