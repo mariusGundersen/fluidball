@@ -653,7 +653,7 @@ function updateBall(dt: number) {
 
   ball.x += vx / velocity.width * dt;
   ball.y += vy / velocity.height * dt;
-  ball.x = clamp(ball.x, 0.01, 0.99);
+  ball.x = ball.y < 0.3 || ball.y > 0.7 ? clamp(ball.x, 0.01, 0.99) : ball.x;
   ball.y = clamp(ball.y, 0.01, 0.99);
   ball.elm.style.transform = `translate(${ball.x * 100}vw, ${100 - ball.y * 100}vh)`;
 }
