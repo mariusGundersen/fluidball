@@ -13,6 +13,7 @@
         <meta name="description" content="A WebGL fluid simulation that works in mobile browsers.">
 
         <script src="dat.gui.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
         <style>
             * {
                 user-select: none;
@@ -79,14 +80,13 @@
             }
 
             #player1{
-              background-color: red;
-              box-shadow: 0 0 .5vw black;
-              display: none;
+              background-color: white;
+              box-shadow: 0 0 .5vw red inset;
             }
 
             #player2{
-              background-color: blue;
-              box-shadow: 0 0 .5vw black;
+              background-color: white;
+              box-shadow: 0 0 .5vw blue inset;
             }
         </style>
     </head>

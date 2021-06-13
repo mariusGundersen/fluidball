@@ -599,6 +599,8 @@ interface Player {
   color: { r: number; g: number; b: number; };
   dy: number;
   dx: number;
+  aimx: number,
+  aimy: number,
   active: boolean,
   charge: number,
   x: number,
@@ -612,20 +614,24 @@ const players: Player[] = [
     y: 0.5,
     dx: 0,
     dy: 0,
+    aimx: 0,
+    aimy: 0,
     active: false,
     charge: 0,
     elm: document.querySelector('#player1') as HTMLDivElement,
-    color: HSVtoRGB(0, 0.9, 0.1) //{ r: 255, g: 1, b: 1 }
+    color: HSVtoRGB(0, 0.9, 0.9) //{ r: 255, g: 1, b: 1 }
   },
   {
     x: 0.8,
     y: 0.5,
     dx: 0,
     dy: 0,
+    aimx: 0,
+    aimy: 0,
     active: false,
     charge: 0,
     elm: document.querySelector('#player2') as HTMLDivElement,
-    color: HSVtoRGB(2 / 3, 0.9, 0.1)//{ r: 1, g: 1, b: 255 }
+    color: HSVtoRGB(2 / 3, 0.9, 0.9)//{ r: 1, g: 1, b: 255 }
   }
 ];
 
@@ -717,6 +723,24 @@ function updateColors(dt: number) {
   }
 }
 
+
+// @ts-ignore
+var socket = io();
+socket.on('move', ({ x, y }: { x: number, y: number }) => {
+  players[0].dx = x * 2;
+  players[0].dy = y * 2;
+});
+
+socket.on('aim', ({ x, y }: { x: number, y: number }) => {
+  players[0].aimx = x;
+  players[0].aimy = y;
+  players[0].active = true;
+});
+
+socket.on('kick', () => {
+  players[0].active = false;
+})
+
 function applyInputs(dt: number) {
   if (splatStack.length > 0)
     multipleSplats(splatStack.pop() as number);
@@ -730,20 +754,26 @@ function applyInputs(dt: number) {
 
   const aspectRatio = canvas.width / canvas.height;
 
-  players[0].dx = keysDown.has('KeyA') ? -1 : keysDown.has('KeyD') ? +1 : 0;
-  players[0].dy = keysDown.has('KeyW') ? +1 : keysDown.has('KeyS') ? -1 : 0;
-  players[0].active = keysDown.has('Space');
+  // players[0].dx = keysDown.has('KeyA') ? -1 : keysDown.has('KeyD') ? +1 : 0;
+  // players[0].dy = keysDown.has('KeyW') ? +1 : keysDown.has('KeyS') ? -1 : 0;
+  // players[0].active = keysDown.has('Space');
 
   for (const player of players) {
     let dx = player.dx * dt;
     let dy = player.dy * dt * aspectRatio;
 
+    let aimx = player.aimx;
+    let aimy = player.aimy * aspectRatio;
+
     if (player.active) {
-      splat(player.x, player.y, dx, dy, player.color, player.charge);
+      splat(player.x, player.y, 0, 0, dim(player.color, 10), 5000);
     } else if (player.charge) {
-      splat(player.x, player.y, player.charge, 0, player.color, 100);
+      console.log('kick', player.charge, aimx, aimy);
+      splat(player.x, player.y, player.charge * aimx, player.charge * aimy, player.color, 50);
+      players[0].aimx = 0;
+      players[0].aimy = 0;
     } else {
-      splat(player.x, player.y, 0, 0, dim(player.color), 5000);
+      splat(player.x, player.y, 0, 0, dim(player.color, 10), 5000);
     }
 
     if (dx * dy != 0) {
@@ -759,11 +789,10 @@ function applyInputs(dt: number) {
     player.x = clamp(player.x, 0.01, 0.99);
     player.y = clamp(player.y, 0.01, 0.99);
 
-    sourceDrain(player.x + dx * 2, player.y + dy * 2, player.active ? -150 : -1);
+    sourceDrain(player.x + aimx / 100, player.y + aimy / 100, player.active ? -150 : -5);
 
     if (player.active) {
-      player.charge += dt * 1_000;
-      player.charge *= 0.9;
+      player.charge = Math.min(player.charge + dt / 16 * 1_000 * 50, 500);
       console.log(player.charge);
     } else {
       player.charge = 0;
@@ -896,6 +925,7 @@ function drawDisplay(target: DrawTarget) {
 function splatPointer(pointer: Pointer) {
   let dx = pointer.deltaX * config.SPLAT_FORCE;
   let dy = pointer.deltaY * config.SPLAT_FORCE;
+  console.log('splat', dx, dy);
   splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color);
 }
 
