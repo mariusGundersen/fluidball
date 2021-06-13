@@ -25,39 +25,41 @@
   <script src="/nipplejs.js"></script>
   <script>
     var socket = io();
-    var leftJoystick = nipplejs.create({
-      zone: document.getElementById('left'),
-      color: 'blue'
+
+    socket.on('team', team => {
+      const color = team === 0 ? 'red' : 'blue';
+
+      const leftJoystick = nipplejs
+        .create({
+          zone: document.getElementById('left'),
+          color
+        })
+        .on('move', (e, data) => {
+          socket.emit('move', data.vector);
+          console.log(e.target.id, data.vector);
+        })
+        .on('end', (e) => {
+          socket.emit('move', { x:0, y:0 });
+          console.log(e.target.id, {x: 0, y:0});
+        });
+
+      const rightJoystick = nipplejs
+        .create({
+          zone: document.getElementById('right'),
+          color
+        })
+        .on('move', (e, data) => {
+          console.log(data);
+          socket.emit('aim', {
+            x: data.vector.x,
+            y: data.vector.y
+          });
+        })
+        .on('end', (e) => {
+          socket.emit('kick');
+        });
     });
 
-
-    leftJoystick
-      .on('move', (e, data) => {
-        socket.emit('move', data.vector);
-        console.log(e.target.id, data.vector);
-      })
-      .on('end', (e) => {
-        socket.emit('move', { x:0, y:0 });
-        console.log(e.target.id, {x: 0, y:0});
-      });
-
-
-    var rightJoystick = nipplejs.create({
-      zone: document.getElementById('right'),
-      color: 'blue'
-    });
-
-    rightJoystick
-    .on('move', (e, data) => {
-      console.log(data);
-      socket.emit('aim', {
-        x: data.vector.x,
-        y: data.vector.y
-      });
-    })
-    .on('end', (e) => {
-      socket.emit('kick');
-    })
   </script>
 </body>
 </html>

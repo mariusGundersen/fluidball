@@ -115,8 +115,7 @@ if (!ext.supportLinearFiltering) {
 startGUI(config, {
   initFramebuffers,
   updateKeywords,
-  splatStack,
-  captureScreenshot: () => { }
+  splatStack
 });
 
 
@@ -679,16 +678,20 @@ function updateBall(dt: number) {
   const dx = vx / velocity.width * dt;
   const dy = vy / velocity.height * dt;
 
-  if (ball.x < 0.95 && ball.x + dx > 0.95) {
-    const y = ball.y + dy * (0.95 - ball.x) / dx;
-    if (y > 0.44 && y < 0.56) {
-      ball.inGoal = true;
+  if (!ball.inGoal) {
+    if (ball.x < 0.95 && ball.x + dx > 0.95) {
+      const y = ball.y + dy * (0.95 - ball.x) / dx;
+      if (y > 0.44 && y < 0.56) {
+        multipleSplats(20);
+        ball.inGoal = true;
+      }
     }
-  }
-  if (ball.x > 0.05 && ball.x + dx < 0.05) {
-    const y = ball.y + dy * (0.05 - ball.x) / dx;
-    if (y > 0.44 && y < 0.56) {
-      ball.inGoal = true;
+    if (ball.x > 0.05 && ball.x + dx < 0.05) {
+      const y = ball.y + dy * (0.05 - ball.x) / dx;
+      if (y > 0.44 && y < 0.56) {
+        multipleSplats(20);
+        ball.inGoal = true;
+      }
     }
   }
 
@@ -697,15 +700,15 @@ function updateBall(dt: number) {
 
   if (ball.inGoal) {
     if (ball.x > 0.5) {
-      ball.x = clamp(ball.x, 0.95, 0.98);
+      ball.x = clamp(ball.x, 0.95, 0.97);
       ball.y = clamp(ball.y, 0.44, 0.56);
     } else {
-      ball.x = clamp(ball.x, 0.02, 0.05);
+      ball.x = clamp(ball.x, 0.03, 0.05);
       ball.y = clamp(ball.y, 0.44, 0.56);
     }
   } else {
-    ball.x = ball.y < 0.44 || ball.y > 0.56 ? clamp(ball.x, 0.05, 0.95) : clamp(ball.x, 0.02, 0.98);
-    ball.y = clamp(ball.y, 0.05, 0.95);
+    ball.x = clamp(ball.x, 0.05, 0.95);
+    ball.y = clamp(ball.y, 0.02, 0.98);
   }
   ball.elm.style.transform = `translate(${ball.x * canvas.clientWidth}px, ${(1 - ball.y) * canvas.clientHeight}px)`;
 }
@@ -736,19 +739,19 @@ function updateColors(dt: number) {
 
 // @ts-ignore
 var socket = io();
-socket.on('move', ({ x, y }: { x: number, y: number }) => {
-  players[0].dx = x * 2;
-  players[0].dy = y * 2;
+socket.on('move', (player: number, { x, y }: { x: number, y: number }) => {
+  players[player].dx = x * 2;
+  players[player].dy = y * 2;
 });
 
-socket.on('aim', ({ x, y }: { x: number, y: number }) => {
-  players[0].aimx = x;
-  players[0].aimy = y;
-  players[0].active = true;
+socket.on('aim', (player: number, { x, y }: { x: number, y: number }) => {
+  players[player].aimx = x;
+  players[player].aimy = y;
+  players[player].active = true;
 });
 
-socket.on('kick', () => {
-  players[0].active = false;
+socket.on('kick', (player: number) => {
+  players[player].active = false;
 })
 
 function applyInputs(dt: number) {

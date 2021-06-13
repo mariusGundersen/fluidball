@@ -39,19 +39,26 @@ const app = express()
   });
 
 const server = http
-  .createServer(app)
+  .createServer(app);
+
+let playerCounter = 0;
 
 const socketIo = new Server(server)
   .on('connection', (socket) => {
-    console.log('client connected');
+    const player = (playerCounter++) % 2;
+
+    console.log('joined team', player);
+
+    socket.emit('team', player);
+
     socket.on('move', vector => {
-      socket.broadcast.emit('move', vector);
+      socket.broadcast.emit('move', player, vector);
     });
     socket.on('aim', vector => {
-      socket.broadcast.emit('aim', vector);
+      socket.broadcast.emit('aim', player, vector);
     });
     socket.on('kick', () => {
-      socket.broadcast.emit('kick');
+      socket.broadcast.emit('kick', player);
     });
   });
 

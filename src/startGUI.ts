@@ -25,11 +25,10 @@ SOFTWARE.
 interface Refs {
   initFramebuffers: () => void,
   updateKeywords: () => void,
-  captureScreenshot: () => void,
   splatStack: number[]
 }
 
-export default function startGUI(config: any, { initFramebuffers, updateKeywords, splatStack, captureScreenshot }: Refs) {
+export default function startGUI(config: any, { initFramebuffers, updateKeywords, splatStack }: Refs) {
   var gui = new dat.GUI({ width: 300 });
   gui.add(config, 'DYE_RESOLUTION', { 'high': 1024, 'medium': 512, 'low': 256, 'very low': 128 }).name('quality').onFinishChange(initFramebuffers);
   gui.add(config, 'SIM_RESOLUTION', { '32': 32, '64': 64, '128': 128, '256': 256 }).name('sim resolution').onFinishChange(initFramebuffers);
@@ -57,13 +56,7 @@ export default function startGUI(config: any, { initFramebuffers, updateKeywords
   sunraysFolder.add(config, 'SUNRAYS').name('enabled').onFinishChange(updateKeywords);
   sunraysFolder.add(config, 'SUNRAYS_WEIGHT', 0.3, 1.0).name('weight');
 
-  let captureFolder = gui.addFolder('Capture');
-  captureFolder.addColor(config, 'BACK_COLOR').name('background color');
-  captureFolder.add(config, 'TRANSPARENT').name('transparent');
-  captureFolder.add({ fun: captureScreenshot }, 'fun').name('take screenshot');
-
-  if (isMobile())
-    gui.close();
+  gui.close();
 }
 
 export function isMobile() {
