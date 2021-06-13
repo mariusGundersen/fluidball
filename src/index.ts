@@ -34,7 +34,7 @@ import CurlProgram from "./programs/curl.js";
 import SunraysProgram from "./programs/sunrays.js";
 import Quad from "./Quad.js";
 import startGUI, { isMobile } from "./startGUI.js";
-import { clamp, correctDeltaX, correctDeltaY, dim, generateColor, getResolution, HSVtoRGB, normalizeColor, scaleByPixelRatio, wrap } from "./utils.js";
+import { clamp, correctDeltaX, correctDeltaY, dim, generateColor, getResolution, HSVtoRGB, scaleByPixelRatio, wrap } from "./utils.js";
 
 // Simulation section
 
@@ -176,24 +176,6 @@ const colorShader = compileShader(gl, gl.FRAGMENT_SHADER, `
 
     void main () {
         gl_FragColor = color;
-    }
-`);
-
-const checkerboardShader = compileShader(gl, gl.FRAGMENT_SHADER, `
-    precision highp float;
-    precision highp sampler2D;
-
-    varying vec2 vUv;
-    uniform sampler2D uTexture;
-    uniform float aspectRatio;
-
-    #define SCALE 25.0
-
-    void main () {
-        vec2 uv = floor(vUv * SCALE * vec2(aspectRatio, 1.0));
-        float v = mod(uv.x + uv.y, 2.0);
-        v = v * 0.1 + 0.8;
-        gl_FragColor = vec4(vec3(v), 1.0);
     }
 `);
 
@@ -472,13 +454,13 @@ let bloomFramebuffers: FBO[] = [];
 let sunrays: FBO;
 let sunraysTemp: FBO;
 
-let ditheringTexture = createTextureAsync(gl, 'LDR_LLL1_0.png');
+const ditheringTexture = createTextureAsync(gl, 'LDR_LLL1_0.png');
+const bgTexture = createTextureAsync(gl, 'bg.jpg');
 
 const blurProgram = new BlurProgram(gl);
 const copyProgram = new Program(gl, baseVertexShader, copyShader);
 const clearProgram = new Program(gl, baseVertexShader, clearShader);
 const colorProgram = new Program(gl, baseVertexShader, colorShader);
-const checkerboardProgram = new Program(gl, baseVertexShader, checkerboardShader);
 const bloomProgram = new BloomProgram(gl);
 const sunraysProgram = new SunraysProgram(gl);
 const splatProgram = new Program(gl, baseVertexShader, splatShader);
@@ -590,7 +572,8 @@ initFramebuffers();
 const ball = {
   x: 0.5,
   y: 0.5,
-  elm: document.querySelector('.ball') as HTMLDivElement
+  elm: document.querySelector('.ball') as HTMLDivElement,
+  inGoal: false,
 };
 
 const keysDown = new Set<string>();
@@ -693,11 +676,38 @@ function updateBall(dt: number) {
   vx /= SIZE * SIZE;
   vy /= SIZE * SIZE;
 
-  ball.x += vx / velocity.width * dt;
-  ball.y += vy / velocity.height * dt;
-  ball.x = ball.y < 0.3 || ball.y > 0.7 ? clamp(ball.x, 0.01, 0.99) : ball.x;
-  ball.y = clamp(ball.y, 0.01, 0.99);
-  ball.elm.style.transform = `translate(${ball.x * 100}vw, ${100 - ball.y * 100}vh)`;
+  const dx = vx / velocity.width * dt;
+  const dy = vy / velocity.height * dt;
+
+  if (ball.x < 0.95 && ball.x + dx > 0.95) {
+    const y = ball.y + dy * (0.95 - ball.x) / dx;
+    if (y > 0.44 && y < 0.56) {
+      ball.inGoal = true;
+    }
+  }
+  if (ball.x > 0.05 && ball.x + dx < 0.05) {
+    const y = ball.y + dy * (0.05 - ball.x) / dx;
+    if (y > 0.44 && y < 0.56) {
+      ball.inGoal = true;
+    }
+  }
+
+  ball.x += dx;
+  ball.y += dy;
+
+  if (ball.inGoal) {
+    if (ball.x > 0.5) {
+      ball.x = clamp(ball.x, 0.95, 0.98);
+      ball.y = clamp(ball.y, 0.44, 0.56);
+    } else {
+      ball.x = clamp(ball.x, 0.02, 0.05);
+      ball.y = clamp(ball.y, 0.44, 0.56);
+    }
+  } else {
+    ball.x = ball.y < 0.44 || ball.y > 0.56 ? clamp(ball.x, 0.05, 0.95) : clamp(ball.x, 0.02, 0.98);
+    ball.y = clamp(ball.y, 0.05, 0.95);
+  }
+  ball.elm.style.transform = `translate(${ball.x * canvas.clientWidth}px, ${(1 - ball.y) * canvas.clientHeight}px)`;
 }
 
 function resizeCanvas() {
@@ -754,10 +764,6 @@ function applyInputs(dt: number) {
 
   const aspectRatio = canvas.width / canvas.height;
 
-  // players[0].dx = keysDown.has('KeyA') ? -1 : keysDown.has('KeyD') ? +1 : 0;
-  // players[0].dy = keysDown.has('KeyW') ? +1 : keysDown.has('KeyS') ? -1 : 0;
-  // players[0].active = keysDown.has('Space');
-
   for (const player of players) {
     let dx = player.dx * dt;
     let dy = player.dy * dt * aspectRatio;
@@ -793,15 +799,12 @@ function applyInputs(dt: number) {
 
     if (player.active) {
       player.charge = Math.min(player.charge + dt / 16 * 1_000 * 50, 500);
-      console.log(player.charge);
+      console.log(player.x, player.y);
     } else {
       player.charge = 0;
     }
 
-    // splat(player.x, player.y, (0.5 - player.x) * 500, 0, player.color);
-
-
-    player.elm.style.transform = `translate(${player.x * 100}vw, ${100 - player.y * 100}vh)`;
+    player.elm.style.transform = `translate(${player.x * canvas.clientWidth}px, ${(1 - player.y) * canvas.clientHeight}px)`;
   }
 }
 
@@ -874,18 +877,14 @@ function render(target: DrawTarget) {
     blurProgram.run(sunrays, sunraysTemp, 1, quad);
   }
 
-  if (target == null || !config.TRANSPARENT) {
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    gl.enable(gl.BLEND);
-  }
-  else {
-    gl.disable(gl.BLEND);
-  }
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.enable(gl.BLEND);
 
-  if (!config.TRANSPARENT)
-    drawColor(target, normalizeColor(config.BACK_COLOR));
-  if (target == null && config.TRANSPARENT)
-    drawCheckerboard(target);
+  //drawColor(target, normalizeColor(config.BACK_COLOR));
+  copyProgram.bind();
+  copyProgram.uniforms.uTexture = bgTexture.attach(0);
+  target.drawTo(quad);
+
   drawDisplay(target);
 }
 
@@ -895,15 +894,9 @@ function drawColor(target: DrawTarget, color: { r: any; g: any; b: any; }) {
   target.drawTo(quad);
 }
 
-function drawCheckerboard(target: DrawTarget) {
-  checkerboardProgram.bind();
-  checkerboardProgram.uniforms.aspectRatio = canvas.width / canvas.height;
-  target.drawTo(quad);
-}
-
 function drawDisplay(target: DrawTarget) {
-  let width = target == null ? gl.drawingBufferWidth : target.width;
-  let height = target == null ? gl.drawingBufferHeight : target.height;
+  let width = target.width;
+  let height = target.height;
 
   displayMaterial.bind();
   if (config.SHADING)
