@@ -1,45 +1,46 @@
-import { FBO } from "../createFBO";
-import { compileShader, Program, WebGLContext } from "../Material";
 import Quad from "../Quad";
+import { FBO } from "../types";
+import { glsl } from "../utils";
+import { Program, WebGLContext } from "./Program";
 
-const blurVertexShader = `
-precision highp float;
+const blurVertexShader = glsl`${`
+  precision highp float;
 
-attribute vec2 aPosition;
-varying vec2 vUv;
-varying vec2 vL;
-varying vec2 vR;
-uniform vec2 texelSize;
+  attribute vec2 aPosition;
+  varying vec2 vUv;
+  varying vec2 vL;
+  varying vec2 vR;
+  uniform vec2 texelSize;
 
-void main () {
+  void main () {
     vUv = aPosition * 0.5 + 0.5;
     float offset = 1.33333333;
     vL = vUv - texelSize * offset;
     vR = vUv + texelSize * offset;
     gl_Position = vec4(aPosition, 0.0, 1.0);
-}
-`;
+  }
+`}`;
 
-const blurShader = `
-precision mediump float;
-precision mediump sampler2D;
+const blurShader = glsl`${`
+  precision mediump float;
+  precision mediump sampler2D;
 
-varying vec2 vUv;
-varying vec2 vL;
-varying vec2 vR;
-uniform sampler2D uTexture;
+  varying vec2 vUv;
+  varying vec2 vL;
+  varying vec2 vR;
+  uniform sampler2D uTexture;
 
-void main () {
+  void main () {
     vec4 sum = texture2D(uTexture, vUv) * 0.29411764;
     sum += texture2D(uTexture, vL) * 0.35294117;
     sum += texture2D(uTexture, vR) * 0.35294117;
     gl_FragColor = sum;
-}
-`;
+  }
+`}`;
 
 export default class BlurProgram extends Program<typeof blurVertexShader, typeof blurShader> {
   constructor(gl: WebGLContext) {
-    super(gl, compileShader(gl, gl.VERTEX_SHADER, blurVertexShader), compileShader(gl, gl.FRAGMENT_SHADER, blurShader));
+    super(gl, blurVertexShader, blurShader);
   }
 
   run(target: FBO, temp: FBO, iterations: number, quad: Quad) {

@@ -1,5 +1,6 @@
-import createFBO, { FBO } from "./createFBO";
-import { WebGLContext } from "./Material";
+import createFBO from "./createFBO";
+import { WebGLContext } from "./programs/Program";
+import { CreateFboParams, FBO, Size } from "./types";
 
 
 export interface DoubleFBO {
@@ -12,13 +13,12 @@ export interface DoubleFBO {
   swap(): void;
 }
 
-export default function createDoubleFBO(gl: WebGLContext, w: number, h: number, internalFormat: any, format: any, type: any, param: any): DoubleFBO {
-  let fbo1 = createFBO(gl, w, h, internalFormat, format, type, param);
-  let fbo2 = createFBO(gl, w, h, internalFormat, format, type, param);
+export default function createDoubleFBO(gl: WebGLContext, size: Size, params: CreateFboParams): DoubleFBO {
+  let fbo1 = createFBO(gl, size, params);
+  let fbo2 = createFBO(gl, size, params);
 
   return {
-    width: w,
-    height: h,
+    ...size,
     texelSizeX: fbo1.texelSizeX,
     texelSizeY: fbo1.texelSizeY,
     get read() {

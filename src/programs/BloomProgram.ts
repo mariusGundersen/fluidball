@@ -1,39 +1,41 @@
-import { FBO } from "../createFBO";
-import { baseVertexShader } from "../index";
-import { compileShader, Program, WebGLContext } from "../Material";
+import createFBO from "../createFBO";
 import Quad from "../Quad";
-import { ShaderOf } from "./curl";
+import { CreateFboParams, FBO, Size } from "../types";
+import { glsl } from "../utils";
+import { Program, WebGLContext } from "./Program";
+import { vertexShader } from "./vertexShader";
+import WebGl from "./WebGl";
 
-const bloomPrefilterShader = `
-precision mediump float;
-precision mediump sampler2D;
+const bloomPrefilterShader = glsl`${`
+  precision mediump float;
+  precision mediump sampler2D;
 
-varying vec2 vUv;
-uniform sampler2D uTexture;
-uniform vec3 curve;
-uniform float threshold;
+  varying vec2 vUv;
+  uniform sampler2D uTexture;
+  uniform vec3 curve;
+  uniform float threshold;
 
-void main () {
+  void main () {
     vec3 c = texture2D(uTexture, vUv).rgb;
     float br = max(c.r, max(c.g, c.b));
     float rq = clamp(br - curve.x, 0.0, curve.y);
     rq = curve.z * rq * rq;
     c *= max(rq, br - threshold) / max(br, 0.0001);
     gl_FragColor = vec4(c, 0.0);
-}
-`;
+  }
+`}`;
 
-const bloomBlurShader = `
-precision mediump float;
-precision mediump sampler2D;
+const bloomBlurShader = glsl`${`
+  precision mediump float;
+  precision mediump sampler2D;
 
-varying vec2 vL;
-varying vec2 vR;
-varying vec2 vT;
-varying vec2 vB;
-uniform sampler2D uTexture;
+  varying vec2 vL;
+  varying vec2 vR;
+  varying vec2 vT;
+  varying vec2 vB;
+  uniform sampler2D uTexture;
 
-void main () {
+  void main () {
     vec4 sum = vec4(0.0);
     sum += texture2D(uTexture, vL);
     sum += texture2D(uTexture, vR);
@@ -41,21 +43,21 @@ void main () {
     sum += texture2D(uTexture, vB);
     sum *= 0.25;
     gl_FragColor = sum;
-}
-`;
+  }
+`}`;
 
-const bloomFinalShader = `
-precision mediump float;
-precision mediump sampler2D;
+const bloomFinalShader = glsl`${`
+  precision mediump float;
+  precision mediump sampler2D;
 
-varying vec2 vL;
-varying vec2 vR;
-varying vec2 vT;
-varying vec2 vB;
-uniform sampler2D uTexture;
-uniform float intensity;
+  varying vec2 vL;
+  varying vec2 vR;
+  varying vec2 vT;
+  varying vec2 vB;
+  uniform sampler2D uTexture;
+  uniform float intensity;
 
-void main () {
+  void main () {
     vec4 sum = vec4(0.0);
     sum += texture2D(uTexture, vL);
     sum += texture2D(uTexture, vR);
@@ -63,8 +65,8 @@ void main () {
     sum += texture2D(uTexture, vB);
     sum *= 0.25;
     gl_FragColor = sum * intensity;
-}
-`;
+  }
+`}`;
 
 export interface BloomConfig {
   BLOOM_THRESHOLD: number,
@@ -72,20 +74,33 @@ export interface BloomConfig {
   BLOOM_INTENSITY: number
 }
 
-export default class BloomProgram {
-  bloomPrefilterProgram: Program<ShaderOf<typeof baseVertexShader>, typeof bloomPrefilterShader>;
-  bloomBlurProgram: Program<ShaderOf<typeof baseVertexShader>, typeof bloomBlurShader>;
-  bloomFinalProgram: Program<ShaderOf<typeof baseVertexShader>, typeof bloomFinalShader>;
-  gl: WebGLContext;
+export default class BloomProgram extends WebGl {
+  private framebuffers: FBO[] = [];
+  bloomPrefilterProgram = new Program(this.gl, vertexShader, bloomPrefilterShader);
+  bloomBlurProgram = new Program(this.gl, vertexShader, bloomBlurShader);
+  bloomFinalProgram = new Program(this.gl, vertexShader, bloomFinalShader);
   constructor(gl: WebGLContext) {
-    this.gl = gl;
-    this.bloomPrefilterProgram = new Program(gl, baseVertexShader, compileShader(gl, gl.FRAGMENT_SHADER, bloomPrefilterShader));
-    this.bloomBlurProgram = new Program(gl, baseVertexShader, compileShader(gl, gl.FRAGMENT_SHADER, bloomBlurShader));
-    this.bloomFinalProgram = new Program(gl, baseVertexShader, compileShader(gl, gl.FRAGMENT_SHADER, bloomFinalShader));
+    super(gl);
   }
 
-  run(source: FBO, bloomFramebuffers: FBO[], destination: FBO, config: BloomConfig, quad: Quad) {
-    if (bloomFramebuffers.length < 2)
+  initBloomFramebuffers(res: Size, params: CreateFboParams, iterations: number) {
+    while (this.framebuffers.length > 0) {
+      this.gl.deleteTexture(this.framebuffers.shift()!.texture);
+    }
+
+    for (let i = 0; i < iterations; i++) {
+      let width = res.width >> (i + 1);
+      let height = res.height >> (i + 1);
+
+      if (width < 2 || height < 2) break;
+
+      let fbo = createFBO(this.gl, res, params);
+      this.framebuffers.push(fbo);
+    }
+  }
+
+  run(source: FBO, destination: FBO, config: BloomConfig, quad: Quad) {
+    if (this.framebuffers.length < 2)
       return;
 
     let last = destination;
@@ -102,8 +117,8 @@ export default class BloomProgram {
     last.drawTo(quad);
 
     this.bloomBlurProgram.bind();
-    for (let i = 0; i < bloomFramebuffers.length; i++) {
-      let dest = bloomFramebuffers[i];
+    for (let i = 0; i < this.framebuffers.length; i++) {
+      let dest = this.framebuffers[i];
       this.bloomBlurProgram.uniforms.texelSize = [last.texelSizeX, last.texelSizeY];
       this.bloomBlurProgram.uniforms.uTexture = last.attach(0);
       dest.drawTo(quad);
@@ -113,8 +128,8 @@ export default class BloomProgram {
     this.gl.blendFunc(this.gl.ONE, this.gl.ONE);
     this.gl.enable(this.gl.BLEND);
 
-    for (let i = bloomFramebuffers.length - 2; i >= 0; i--) {
-      let baseTex = bloomFramebuffers[i];
+    for (let i = this.framebuffers.length - 2; i >= 0; i--) {
+      let baseTex = this.framebuffers[i];
       this.bloomBlurProgram.uniforms.texelSize = [last.texelSizeX, last.texelSizeY];
       this.bloomBlurProgram.uniforms.uTexture = last.attach(0);
       this.gl.viewport(0, 0, baseTex.width, baseTex.height);

@@ -1,51 +1,17 @@
-import { hashCode } from "./utils";
 
 export type WebGLContext = WebGL2RenderingContext | WebGLRenderingContext;
-
-export default class Material<VS extends string, FS extends string> {
-  vertexShader: CompiledShader<VS>;
-  fragmentShaderSource: string;
-  programs: WebGLProgram[] = [];
-  activeProgram!: WebGLProgram;
-  uniforms: GetAllUniforms<VS> & GetAllUniforms<FS> = {} as any;
-  gl: WebGLContext;
-  constructor(gl: WebGLContext, vertexShader: CompiledShader<VS>, fragmentShaderSource: FS) {
-    this.gl = gl;
-    this.vertexShader = vertexShader;
-    this.fragmentShaderSource = fragmentShaderSource;
-  }
-
-  setKeywords(keywords: string[]) {
-    let hash = 0;
-    for (let i = 0; i < keywords.length; i++)
-      hash += hashCode(keywords[i]);
-
-    let program = this.programs[hash];
-    if (program == null) {
-      let fragmentShader = compileShader(this.gl, this.gl.FRAGMENT_SHADER, this.fragmentShaderSource, keywords);
-      program = createProgram(this.gl, this.vertexShader.shader, fragmentShader.shader);
-      this.programs[hash] = program;
-    }
-
-    if (program == this.activeProgram)
-      return;
-
-    this.uniforms = getUniforms(this.gl, program);
-    this.activeProgram = program;
-  }
-
-  bind() {
-    this.gl.useProgram(this.activeProgram);
-  }
-}
 
 export class Program<VS extends string, FS extends string> {
   readonly uniforms: GetAllUniforms<VS> & GetAllUniforms<FS>;
   readonly program: WebGLProgram | null;
   readonly gl: WebGLContext;
-  constructor(gl: WebGLContext, vertexShader: CompiledShader<VS>, fragmentShader: CompiledShader<FS>) {
+  readonly vertexShader: WebGLShader;
+  readonly fragmentShader: WebGLShader;
+  constructor(gl: WebGLContext, vertexShader: VS, fragmentShader: FS) {
     this.gl = gl;
-    this.program = createProgram(gl, vertexShader.shader, fragmentShader.shader);
+    this.vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexShader);
+    this.fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShader);
+    this.program = createProgram(gl, this.vertexShader, this.fragmentShader);
     this.uniforms = getUniforms(gl, this.program);
   }
 
@@ -102,11 +68,7 @@ export function getUniforms(gl: WebGLContext, program: WebGLProgram) {
   return uniforms;
 }
 
-export type CompiledShader<Source extends string> = {
-  shader: WebGLShader
-};
-
-export function compileShader<Source extends string>(gl: WebGLContext, type: number, source: Source, keywords?: string[]): CompiledShader<Source> {
+export function compileShader<Source extends string>(gl: WebGLContext, type: number, source: Source, keywords?: string[]): WebGLShader {
   const shader = gl.createShader(type);
 
   if (!shader) throw new Error("Could not make shader");
@@ -117,7 +79,7 @@ export function compileShader<Source extends string>(gl: WebGLContext, type: num
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
     console.trace(gl.getShaderInfoLog(shader));
 
-  return { shader };
+  return shader;
 };
 
 function addKeywords(source: string, keywords?: string[]) {

@@ -3,10 +3,9 @@ import dat from "dat.gui";
 interface Refs {
   initFramebuffers: () => void,
   updateKeywords: () => void,
-  splatStack: number[]
 }
 
-export default function startGUI(config: any, { initFramebuffers, updateKeywords, splatStack }: Refs) {
+export default function startGUI(config: any, { initFramebuffers, updateKeywords }: Refs) {
   var gui = new dat.GUI({ width: 300 });
   gui.add(config, 'DYE_RESOLUTION', { 'high': 1024, 'medium': 512, 'low': 256, 'very low': 128 }).name('quality').onFinishChange(initFramebuffers);
   gui.add(config, 'SIM_RESOLUTION', { '32': 32, '64': 64, '128': 128, '256': 256 }).name('sim resolution').onFinishChange(initFramebuffers);
@@ -18,12 +17,6 @@ export default function startGUI(config: any, { initFramebuffers, updateKeywords
   gui.add(config, 'SHADING').name('shading').onFinishChange(updateKeywords);
   gui.add(config, 'COLORFUL').name('colorful');
   gui.add(config, 'PAUSED').name('paused').listen();
-
-  gui.add({
-    fun: () => {
-      splatStack.push((Math.random() * 20) + 5);
-    }
-  }, 'fun').name('Random splats');
 
   let bloomFolder = gui.addFolder('Bloom');
   bloomFolder.add(config, 'BLOOM').name('enabled').onFinishChange(updateKeywords);

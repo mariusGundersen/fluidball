@@ -1,4 +1,4 @@
-import { WebGLContext } from "./Material";
+import { WebGLContext } from "./programs/Program";
 
 export function correctDeltaX(canvas: { width: number, height: number }, delta: number) {
   let aspectRatio = canvas.width / canvas.height;
@@ -97,4 +97,8 @@ export function getResolution(gl: WebGLContext, resolution: number) {
 
 export function clamp(v: number, min = 0, max = 1) {
   return Math.max(min, Math.min(v, max));
+}
+
+export function glsl<T>(_: TemplateStringsArray, ...strings: [T]): T {
+  return strings[0];
 }

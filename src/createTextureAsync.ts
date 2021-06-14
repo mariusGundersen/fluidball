@@ -1,12 +1,5 @@
-import { WebGLContext } from "./Material";
-
-export interface Texture {
-  texture: WebGLTexture,
-  width: number,
-  height: number,
-  attach(id: number): number;
-  getTextureScale(width: number, height: number): { x: number, y: number }
-}
+import { WebGLContext } from "./programs/Program";
+import { Texture } from "./types";
 
 export default function createTextureAsync(gl: WebGLContext, url: string): Texture {
   let texture = gl.createTexture();
