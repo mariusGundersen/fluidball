@@ -1,40 +1,19 @@
-/*
-MIT License
-
-Copyright (c) 2017 Pavel Dobryakov
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-
-import createDoubleFBO, { DoubleFBO } from "./createDoubleFBO.js";
-import createFBO, { DrawTarget, FBO } from "./createFBO.js";
-import createTextureAsync from "./createTextureAsync.js";
-import Stats from "./fps.js";
-import getWebGLContext from "./getWebGLContext.js";
-import Material, { compileShader, Program } from "./Material.js";
-import BloomProgram from "./programs/bloom.js";
-import BlurProgram from "./programs/blur.js";
-import CurlProgram from "./programs/curl.js";
-import SunraysProgram from "./programs/sunrays.js";
-import Quad from "./Quad.js";
-import startGUI, { isMobile } from "./startGUI.js";
-import { clamp, correctDeltaX, correctDeltaY, dim, generateColor, getResolution, HSVtoRGB, scaleByPixelRatio, wrap } from "./utils.js";
+import { io } from 'socket.io-client';
+import bgImageUrl from 'url:./bg.jpg';
+import ditheringImageUrl from 'url:./LDR_LLL1_0.png';
+import createDoubleFBO, { DoubleFBO } from "./createDoubleFBO";
+import createFBO, { DrawTarget, FBO } from "./createFBO";
+import createTextureAsync from "./createTextureAsync";
+import Stats from "./fps";
+import getWebGLContext from "./getWebGLContext";
+import Material, { compileShader, Program } from "./Material";
+import BloomProgram from "./programs/bloom";
+import BlurProgram from "./programs/blur";
+import CurlProgram from "./programs/curl";
+import SunraysProgram from "./programs/sunrays";
+import Quad from "./Quad";
+import startGUI, { isMobile } from "./startGUI";
+import { clamp, correctDeltaX, correctDeltaY, dim, generateColor, getResolution, HSVtoRGB, scaleByPixelRatio, wrap } from "./utils";
 
 // Simulation section
 
@@ -453,8 +432,8 @@ let bloomFramebuffers: FBO[] = [];
 let sunrays: FBO;
 let sunraysTemp: FBO;
 
-const ditheringTexture = createTextureAsync(gl, 'LDR_LLL1_0.png');
-const bgTexture = createTextureAsync(gl, 'bg.jpg');
+const ditheringTexture = createTextureAsync(gl, ditheringImageUrl);
+const bgTexture = createTextureAsync(gl, bgImageUrl);
 
 const blurProgram = new BlurProgram(gl);
 const copyProgram = new Program(gl, baseVertexShader, copyShader);
@@ -737,7 +716,6 @@ function updateColors(dt: number) {
 }
 
 
-// @ts-ignore
 var socket = io();
 socket.on('move', (player: number, { x, y }: { x: number, y: number }) => {
   players[player].dx = x * 2;

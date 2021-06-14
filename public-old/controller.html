@@ -58,6 +58,11 @@
         .on('end', (e) => {
           socket.emit('kick');
         });
+
+      socket.on('disconnect', () => {
+        leftJoystick.destroy();
+        rightJoystick.destroy();
+      });
     });
 
   </script>

@@ -1,4 +1,4 @@
-import { WebGLContext } from "./Material.js";
+import { WebGLContext } from "./Material";
 
 export function correctDeltaX(canvas: { width: number, height: number }, delta: number) {
   let aspectRatio = canvas.width / canvas.height;

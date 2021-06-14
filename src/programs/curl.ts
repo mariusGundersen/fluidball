@@ -1,8 +1,8 @@
-import { DoubleFBO } from "../createDoubleFBO.js";
-import { FBO } from "../createFBO.js";
-import { baseVertexShader } from "../index.js";
-import { CompiledShader, compileShader, Program, WebGLContext } from "../Material.js";
-import Quad from "../Quad.js";
+import { DoubleFBO } from "../createDoubleFBO";
+import { FBO } from "../createFBO";
+import { baseVertexShader } from "../index";
+import { CompiledShader, compileShader, Program, WebGLContext } from "../Material";
+import Quad from "../Quad";
 
 const curlFragmentShader = `
     precision mediump float;

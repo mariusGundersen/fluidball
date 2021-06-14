@@ -1,3 +1,14 @@
+
+module "url:*.png" {
+  declare const url: string;
+  export default url;
+}
+
+module "url:*.jpg" {
+  declare const url: string;
+  export default url;
+}
+
 type Trim<T extends string> = T extends `\n${infer Rest}`
   ? Trim<Rest>
   : T extends ` ${infer Rest}`

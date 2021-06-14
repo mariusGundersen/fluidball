@@ -1,4 +1,4 @@
-import { hashCode } from "./utils.js";
+import { hashCode } from "./utils";
 
 export type WebGLContext = WebGL2RenderingContext | WebGLRenderingContext;
 

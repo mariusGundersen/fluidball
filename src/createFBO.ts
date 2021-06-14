@@ -1,5 +1,5 @@
-import { WebGLContext } from "./Material.js";
-import Quad from "./Quad.js";
+import { WebGLContext } from "./Material";
+import Quad from "./Quad";
 
 export interface DrawTarget {
   drawTo(quad: Quad): void,

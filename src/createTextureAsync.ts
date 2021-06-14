@@ -1,4 +1,4 @@
-import { WebGLContext } from "./Material.js";
+import { WebGLContext } from "./Material";
 
 export interface Texture {
   texture: WebGLTexture,

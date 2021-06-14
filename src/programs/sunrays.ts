@@ -1,8 +1,8 @@
-import { FBO } from "../createFBO.js";
-import { baseVertexShader } from "../index.js";
-import { compileShader, Program, WebGLContext } from "../Material.js";
-import Quad from "../Quad.js";
-import { ShaderOf } from "./curl.js";
+import { FBO } from "../createFBO";
+import { baseVertexShader } from "../index";
+import { compileShader, Program, WebGLContext } from "../Material";
+import Quad from "../Quad";
+import { ShaderOf } from "./curl";
 
 const sunraysMaskShader = `
 precision highp float;

@@ -1,5 +1,5 @@
-import createFBO, { FBO } from "./createFBO.js";
-import { WebGLContext } from "./Material.js";
+import createFBO, { FBO } from "./createFBO";
+import { WebGLContext } from "./Material";
 
 
 export interface DoubleFBO {

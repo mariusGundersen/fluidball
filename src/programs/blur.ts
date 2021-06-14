@@ -1,6 +1,6 @@
-import { FBO } from "../createFBO.js";
-import { compileShader, Program, WebGLContext } from "../Material.js";
-import Quad from "../Quad.js";
+import { FBO } from "../createFBO";
+import { compileShader, Program, WebGLContext } from "../Material";
+import Quad from "../Quad";
 
 const blurVertexShader = `
 precision highp float;
