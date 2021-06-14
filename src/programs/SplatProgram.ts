@@ -25,7 +25,7 @@ const splatShader = glsl`${`
   }
 `}`;
 
-export default class PressureProgram extends Program<typeof vertexShader, typeof splatShader> {
+export default class SplatProgram extends Program<typeof vertexShader, typeof splatShader> {
   constructor(gl: WebGLContext) {
     super(gl, vertexShader, splatShader);
   }

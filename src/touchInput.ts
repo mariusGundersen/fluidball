@@ -1,5 +1,6 @@
-import { splat } from './index';
+
 import { Pointer } from './Pointer';
+import { Color } from './types';
 import { scaleByPixelRatio } from "./utils";
 
 const SPLAT_FORCE = 6000;
@@ -38,20 +39,35 @@ export default function touchInput(canvas: HTMLCanvasElement) {
   });
 
   return () => {
-
+    const splats: Splat[] = [];
     pointers.forEach(p => {
       if (p.moved) {
         p.moved = false;
-        splatPointer(p);
+        splats.push(splatPointer(p));
       }
     });
+
+    return splats;
   }
 
+}
+
+export interface Splat {
+  readonly dx: number,
+  readonly dy: number,
+  readonly x: number,
+  readonly y: number,
+  readonly color: Color
 }
 
 function splatPointer(pointer: Pointer) {
   let dx = pointer.deltaX * SPLAT_FORCE;
   let dy = pointer.deltaY * SPLAT_FORCE;
-  console.log('splat', dx, dy);
-  splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color);
+  return {
+    dx,
+    dy,
+    x: pointer.texcoordX,
+    y: pointer.texcoordY,
+    color: pointer.color
+  }
 }

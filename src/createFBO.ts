@@ -44,3 +44,22 @@ export default function createFBO(gl: WebGLContext, { width, height }: Size, { i
     }
   };
 }
+/*
+function resizeFBO(target: FBO, size: Size, params: CreateFboParams) {
+  const newFBO = createFBO(gl, size, params);
+  copyProgram.run(target, newFBO, 1, quad);
+  gl.deleteTexture(target.texture);
+  return newFBO;
+}
+
+function resizeDoubleFBO(target: DoubleFBO, size: Size, params: CreateFboParams) {
+  if (target.width == size.width && target.height == size.height)
+    return target;
+  target.read = resizeFBO(target.read, size, params);
+  target.write = createFBO(gl, size, params);
+  target.width = size.width;
+  target.height = size.height;
+  target.texelSizeX = 1.0 / size.width;
+  target.texelSizeY = 1.0 / size.height;
+  return target;
+}*/

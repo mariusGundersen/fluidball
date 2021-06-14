@@ -1,4 +1,5 @@
 import { WebGLContext } from "./programs/Program";
+import { Color } from "./types";
 
 export function correctDeltaX(canvas: { width: number, height: number }, delta: number) {
   let aspectRatio = canvas.width / canvas.height;
@@ -20,7 +21,7 @@ export function generateColor() {
   return c;
 }
 
-export function dim({ r, g, b }: { r: number, g: number, b: number }, v = 4) {
+export function dim({ r, g, b }: Color, v = 4) {
   return {
     r: r / v,
     g: g / v,
@@ -52,7 +53,7 @@ export function HSVtoRGB(h: number, s: number, v: number) {
   };
 }
 
-export function normalizeColor({ r, g, b }: { r: number; g: number; b: number; }) {
+export function normalizeColor({ r, g, b }: Color) {
   return {
     r: r / 255,
     g: g / 255,

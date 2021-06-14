@@ -1,5 +1,5 @@
-import { FBO } from "../createFBO";
 import Quad from "../Quad";
+import { FBO } from "../types";
 import { glsl } from "../utils";
 import { Program, WebGLContext } from "./Program";
 import { vertexShader } from "./vertexShader";
@@ -43,7 +43,6 @@ export default class VorticityProgram extends Program<typeof vertexShader, typeo
   }
 
   run(source: FBO, curlicity: number, curl: FBO, target: FBO, dt: number, quad: Quad) {
-
     this.bind();
     this.uniforms.texelSize = [source.texelSizeX, source.texelSizeY];
     this.uniforms.uVelocity = source.attach(0);

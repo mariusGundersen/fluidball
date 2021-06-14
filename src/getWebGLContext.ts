@@ -1,4 +1,14 @@
-export default function getWebGLContext(canvas: HTMLCanvasElement) {
+import { WebGLContext } from "./programs/Program";
+
+export interface WebGlExtensions {
+  formatRGBA: SupportedFormat,
+  formatRG: SupportedFormat,
+  formatR: SupportedFormat,
+  halfFloatTexType: number,
+  supportLinearFiltering: OES_texture_float_linear | null;
+}
+
+export default function getWebGLContext(canvas: HTMLCanvasElement): { gl: WebGLContext, ext: WebGlExtensions } {
   const params: WebGLContextAttributes = { alpha: true, depth: false, stencil: false, antialias: false, preserveDrawingBuffer: false };
 
   const webgl2 = canvas.getContext('webgl2', params);

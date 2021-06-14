@@ -1,29 +1,12 @@
 import { io } from 'socket.io-client';
-import bgImageUrl from 'url:./bg.jpg';
-import ditheringImageUrl from 'url:./LDR_LLL1_0.png';
-import createDoubleFBO, { DoubleFBO } from "./createDoubleFBO";
-import createFBO from "./createFBO";
-import createTextureAsync from "./createTextureAsync";
 import Stats from "./fps";
 import getWebGLContext from "./getWebGLContext";
-import AdvectionProgram from './programs/AdvectionProgram';
-import BloomProgram from "./programs/BloomProgram";
-import BlurProgram from "./programs/BlurProgram";
-import CopyProgram from './programs/CopyProgram';
-import CurlProgram from "./programs/CurlProgram";
-import DisplayProgram from "./programs/DisplayProgram";
-import DivergenceProgram from './programs/DivergenceProgram';
-import GradientSubtractProgram from './programs/GradientSubtractProgram';
-import PressureProgram from './programs/PressureProgram';
-import SplatProgram from './programs/SplatProgram';
-import SunraysProgram from "./programs/SunraysProgram";
-import VorticityProgram from './programs/VorticityProgram';
 import Quad from "./Quad";
-import { render } from './render';
+import { Renderer } from './Renderer';
 import startGUI, { isMobile } from "./startGUI";
 import touchInput from './touchInput';
-import { CreateFboParams, DrawTarget, FBO, Size } from './types';
-import { clamp, dim, generateColor, getResolution, HSVtoRGB, scaleByPixelRatio } from "./utils";
+import { DrawTarget } from './types';
+import { clamp, dim, generateColor, HSVtoRGB, scaleByPixelRatio } from "./utils";
 
 // Simulation section
 
@@ -74,117 +57,22 @@ if (!ext.supportLinearFiltering) {
 }
 
 startGUI(config, {
-  initFramebuffers,
   updateKeywords
 });
 
 
+const renderer = new Renderer(gl, ext);
 
-
-export let dye: DoubleFBO;
-let velocity: DoubleFBO;
-let divergence: FBO;
-let curl: FBO;
-let pressure: DoubleFBO;
-export let bloom: FBO;
-export let sunrays: FBO;
-export let sunraysTemp: FBO;
-
-export const ditheringTexture = createTextureAsync(gl, ditheringImageUrl);
-export const bgTexture = createTextureAsync(gl, bgImageUrl);
-
-export const blurProgram = new BlurProgram(gl);
-export const copyProgram = new CopyProgram(gl);
-export const bloomProgram = new BloomProgram(gl);
-export const sunraysProgram = new SunraysProgram(gl);
-const splatProgram = new SplatProgram(gl);
-const advectionProgram = new AdvectionProgram(gl);
-const divergenceProgram = new DivergenceProgram(gl);
-const curlProgram = new CurlProgram(gl);
-const vorticityProgram = new VorticityProgram(gl);
-const pressureProgram = new PressureProgram(gl);
-const gradienSubtractProgram = new GradientSubtractProgram(gl);
-export const displayProgram = new DisplayProgram(gl);
-export const quad = new Quad(gl);
-
-function initFramebuffers() {
-  const simRes = getResolution(gl, config.SIM_RESOLUTION);
-  const dyeRes = getResolution(gl, config.DYE_RESOLUTION);
-  const bloomRes = getResolution(gl, config.BLOOM_RESOLUTION);
-  const sunraysRes = getResolution(gl, config.SUNRAYS_RESOLUTION);
-
-  const rgbaParams: CreateFboParams = {
-    ...ext.formatRGBA,
-    type: ext.halfFloatTexType,
-    linearOrNearest: ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST
-  }
-
-  const rgParams: CreateFboParams = {
-    ...ext.formatRG,
-    type: ext.halfFloatTexType,
-    linearOrNearest: ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST
-  }
-
-  const rParams: CreateFboParams = {
-    ...ext.formatR,
-    type: ext.halfFloatTexType,
-    linearOrNearest: ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST
-  }
-
-  gl.disable(gl.BLEND);
-
-  if (dye == null)
-    dye = createDoubleFBO(gl, dyeRes, rgbaParams);
-  else
-    dye = resizeDoubleFBO(dye, dyeRes, rgbaParams);
-
-  if (velocity == null)
-    velocity = createDoubleFBO(gl, simRes, rgParams);
-  else
-    velocity = resizeDoubleFBO(velocity, simRes, rgParams);
-
-  divergence = createFBO(gl, simRes, rParams);
-  curl = createFBO(gl, simRes, rParams);
-  pressure = createDoubleFBO(gl, simRes, rParams);
-
-  bloom = createFBO(gl, bloomRes, rgbaParams);
-
-  bloomProgram.initBloomFramebuffers(bloomRes, rgbaParams, config.BLOOM_ITERATIONS);
-
-  sunrays = createFBO(gl, sunraysRes, rParams);
-  sunraysTemp = createFBO(gl, sunraysRes, rParams);
-}
-
-
-function resizeFBO(target: FBO, size: Size, params: CreateFboParams) {
-  const newFBO = createFBO(gl, size, params);
-  copyProgram.run(target, newFBO, 1, quad);
-  gl.deleteTexture(target.texture);
-  return newFBO;
-}
-
-function resizeDoubleFBO(target: DoubleFBO, size: Size, params: CreateFboParams) {
-  if (target.width == size.width && target.height == size.height)
-    return target;
-  target.read = resizeFBO(target.read, size, params);
-  target.write = createFBO(gl, size, params);
-  target.width = size.width;
-  target.height = size.height;
-  target.texelSizeX = 1.0 / size.width;
-  target.texelSizeY = 1.0 / size.height;
-  return target;
-}
 
 function updateKeywords() {
   let displayKeywords = [];
   if (config.SHADING) displayKeywords.push("SHADING");
   if (config.BLOOM) displayKeywords.push("BLOOM");
   if (config.SUNRAYS) displayKeywords.push("SUNRAYS");
-  displayProgram.setKeywords(displayKeywords);
+  renderer.displayProgram.setKeywords(displayKeywords);
 }
 
 updateKeywords();
-initFramebuffers();
 
 export const ball = {
   x: 0.5,
@@ -260,21 +148,22 @@ function update(now: number) {
   const dt = (now - lastUpdateTime) / 1000;
   lastUpdateTime = now;
 
-  if (resizeCanvas())
-    initFramebuffers();
+  //if (resizeCanvas())
+  //initFramebuffers();
   applyInputs(dt);
   if (!config.PAUSED && !document.hidden) {
     updateBall(dt)
-    step(dt);
+    renderer.step(dt, renderer.dye);
   } else {
     console.log(dt);
   }
-  render(gl, screen);
+  renderer.render(screen);
   stats.end();
   requestAnimationFrame(update);
 }
 
 function updateBall(dt: number) {
+  const velocity = renderer.velocity;
   const SIZE = 4;
   gl.bindFramebuffer(gl.FRAMEBUFFER, velocity.read.fbo);
   var velocityPixels = new Float32Array(SIZE * SIZE * 4);
@@ -330,6 +219,7 @@ function updateBall(dt: number) {
 function resizeCanvas() {
   let width = scaleByPixelRatio(canvas.clientWidth);
   let height = scaleByPixelRatio(canvas.clientHeight);
+
   if (canvas.width != width || canvas.height != height) {
     canvas.width = width;
     canvas.height = height;
@@ -355,7 +245,9 @@ socket.on('kick', (player: number) => {
 })
 
 function applyInputs(dt: number) {
-  updatePointers();
+  for (const { x, y, dx, dy, color } of updatePointers()) {
+    renderer.splat(x, y, dx, dy, color);
+  }
 
   const aspectRatio = canvas.width / canvas.height;
 
@@ -367,14 +259,14 @@ function applyInputs(dt: number) {
     let aimy = player.aimy * aspectRatio;
 
     if (player.active) {
-      splat(player.x, player.y, 0, 0, dim(player.color, 10), 5000);
+      renderer.splat(player.x, player.y, 0, 0, dim(player.color, 10), 5000);
     } else if (player.charge) {
       console.log('kick', player.charge, aimx, aimy);
-      splat(player.x, player.y, player.charge * aimx, player.charge * aimy, player.color, 50);
+      renderer.splat(player.x, player.y, player.charge * aimx, player.charge * aimy, player.color, 50);
       players[0].aimx = 0;
       players[0].aimy = 0;
     } else {
-      splat(player.x, player.y, 0, 0, dim(player.color, 10), 5000);
+      renderer.splat(player.x, player.y, 0, 0, dim(player.color, 10), 5000);
     }
 
     if (dx * dy != 0) {
@@ -390,7 +282,7 @@ function applyInputs(dt: number) {
     player.x = clamp(player.x, 0.01, 0.99);
     player.y = clamp(player.y, 0.01, 0.99);
 
-    sourceDrain(player.x + aimx / 100, player.y + aimy / 100, player.active ? -150 : -5, player.color);
+    renderer.sourceDrain(player.x + aimx / 100, player.y + aimy / 100, player.active ? -150 : -5, player.color);
 
     if (player.active) {
       player.charge = Math.min(player.charge + dt / 16 * 1_000 * 50, 500);
@@ -403,29 +295,6 @@ function applyInputs(dt: number) {
   }
 }
 
-function step(dt: number) {
-  gl.disable(gl.BLEND);
-
-  curlProgram.run(velocity, curl, quad);
-
-  vorticityProgram.run(velocity.read, config.CURL, curl, velocity.write, dt, quad);
-
-  velocity.swap();
-
-  divergenceProgram.run(velocity.read, divergence, quad);
-
-  copyProgram.run(pressure.read, pressure.write, config.PRESSURE, quad);
-  pressure.swap();
-  pressureProgram.run(divergence, pressure, config.PRESSURE_ITERATIONS, quad);
-
-  gradienSubtractProgram.run(velocity.read, pressure.read, velocity.write, quad);
-  velocity.swap();
-
-  advectionProgram.advectVelocity(velocity, !!ext.supportLinearFiltering, dt, config.VELOCITY_DISSIPATION, quad);
-
-  advectionProgram.advectDye(velocity.read, dye, !!ext.supportLinearFiltering, config.DENSITY_DISSIPATION, quad);
-  dye.swap();
-}
 
 function multipleSplats(amount: number) {
   for (let i = 0; i < amount; i++) {
@@ -437,26 +306,6 @@ function multipleSplats(amount: number) {
     const y = Math.random();
     const dx = 1000 * (Math.random() - 0.5);
     const dy = 1000 * (Math.random() - 0.5);
-    splat(x, y, dx, dy, color);
+    renderer.splat(x, y, dx, dy, color);
   }
 }
-
-function sourceDrain(x: number, y: number, p: number, { r, g, b }: { r: number; g: number; b: number; }) {
-  const aspectRatio = canvas.width / canvas.height;
-
-  splatProgram.splat(pressure, [x, y], [p, 0, 0], config.SPLAT_RADIUS / 100, aspectRatio, quad);
-
-  if (p > 0) {
-    splatProgram.splat(dye, [x, y], [r, g, b], config.SPLAT_RADIUS / 100, aspectRatio, quad);
-  }
-}
-
-export function splat(x: number, y: number, dx: number, dy: number, { r, g, b }: { r: number; g: number; b: number; }, radius = 100) {
-  const aspectRatio = canvas.width / canvas.height;
-
-  splatProgram.splat(velocity, [x, y], [dx, dy, 0], config.SPLAT_RADIUS / radius, aspectRatio, quad);
-
-  splatProgram.splat(dye, [x, y], [r, g, b], config.SPLAT_RADIUS / radius, aspectRatio, quad);
-}
-
-

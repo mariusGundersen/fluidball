@@ -14,10 +14,10 @@ export interface DrawTarget extends Size {
 }
 
 export interface FBO extends DrawTarget, SampleSource {
-  texture: WebGLTexture;
-  fbo: WebGLFramebuffer;
-  texelSizeX: number;
-  texelSizeY: number;
+  readonly texture: WebGLTexture;
+  readonly fbo: WebGLFramebuffer;
+  readonly texelSizeX: number;
+  readonly texelSizeY: number;
 }
 
 export interface Size {
@@ -30,4 +30,10 @@ export interface CreateFboParams {
   readonly format: number,
   readonly type: number,
   readonly linearOrNearest: number
+}
+
+export interface Color {
+  readonly r: number;
+  readonly g: number;
+  readonly b: number;
 }

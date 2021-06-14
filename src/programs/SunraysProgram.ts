@@ -1,5 +1,5 @@
-import { FBO } from "../createFBO";
 import Quad from "../Quad";
+import { FBO } from "../types";
 import { glsl } from "../utils";
 import { Program, WebGLContext } from "./Program";
 import { vertexShader } from "./vertexShader";
