@@ -29,7 +29,7 @@
     "typescript": "^4.3.2"
   },
   "scripts": {
-    "watch": "parcel watch \"./src/*.html\" \"./src/server.ts\"",
+    "watch": "parcel watch \"./src/*.html\"",
     "start": "node server.js"
   },
   "author": "",

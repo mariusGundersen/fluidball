@@ -1,10 +1,6 @@
 import SimplePeer from "simple-peer";
 import { io, Socket } from "socket.io-client";
-
-export interface ClientConnection {
-  send(data: string): void,
-  onData(listener: (data: string) => void): void
-}
+import { PeerConnection } from "./PeerConnection";
 
 interface ListenerEvents {
   signal(data: any): void,
@@ -24,11 +20,11 @@ type State =
   | 'peerConnected'
   | 'error';
 
-export default function clientConnection(key: string): Promise<ClientConnection> {
+export default function clientConnection(key: string): Promise<PeerConnection> {
 
   console.log(key);
 
-  return new Promise<ClientConnection>((resolve, reject) => {
+  return new Promise<PeerConnection>((resolve, reject) => {
     let state: State = 'initial';
 
     const socket: Socket<ListenerEvents, EmitEvents> = io();
@@ -66,24 +62,12 @@ export default function clientConnection(key: string): Promise<ClientConnection>
       .on('connect', () => {
         if (state === 'signalSent') {
           state = 'peerConnected';
-          resolve({
-            send(data: string) {
-              peer.send(data);
-            },
-            onData(listener: (data: string) => void) {
-              peer.on('data', listener);
-            }
-          });
-          console.log('CONNECT')
-          peer.send('whatever' + Math.random())
+          resolve(new PeerConnection(peer));
         }
       })
       .on('error', err => {
         state = 'error';
         reject(err);
-      })
-      .on('data', data => {
-        console.log('data: ' + data)
       });
   });
 }
