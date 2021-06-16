@@ -2,6 +2,7 @@ import bodyParser from 'body-parser';
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
+import socketServer, { generateKey } from './socketServer';
 
 const port = 8081
 
@@ -41,56 +42,11 @@ const app = express()
 const server = http
   .createServer(app);
 
-let playerCounter = 0;
-const hosts = new Map();
+//let playerCounter = 0;
 
 const socketIo = new Server(server)
-  .on('connection', (socket) => {
-    console.log('new connection');
-
-    socket.on('host', () => {
-      const key = generateKey();
-
-      console.log('host connected', key);
-
-      hosts.set(key, socket);
-      socket.on('disconnect', () => hosts.delete(key));
-      socket.emit('key', key);
-    });
-
-    socket.on('client', (key) => {
-      console.log('client connected', key);
-
-      const host = hosts.get(key);
-
-      if (!host) {
-        socket.emit('error', 'Unknown game');
-        return;
-      }
-
-      host.emit('client', socket.id);
-    });
-
-    socket.on('signalToClient', (clientId, data) => {
-      console.log('signal to client', clientId);
-
-      socketIo.to(clientId).emit('signal', data);
-    });
-
-    socket.on('signalToHost', (key, data) => {
-      console.log('signal to host', key);
-
-      const host = hosts.get(key);
-
-      if (!host) {
-        socket.emit('error', 'Unknown game');
-        return;
-      }
-
-      host.emit('signal', socket.id, data);
-    });
-
-    /*const player = (playerCounter++) % 2;
+  /*.on('connection', (socket) => {
+    const player = (playerCounter++) % 2;
 
     console.log('joined team', player);
 
@@ -104,14 +60,12 @@ const socketIo = new Server(server)
     });
     socket.on('kick', () => {
       socket.broadcast.emit('kick', player);
-    });*/
-  });
+    });
+  })*/;
+
+socketServer(socketIo);
 
 server
   .listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`)
   });
-
-function generateKey() {
-  return String.fromCharCode(...[65, 65, 65, 65].map(c => c + Math.floor(Math.random() * 26)));
-}
