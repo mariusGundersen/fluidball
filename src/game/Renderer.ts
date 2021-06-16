@@ -1,11 +1,12 @@
 import bgImageUrl from 'url:./bg.jpg';
 import ditheringImageUrl from 'url:./LDR_LLL1_0.png';
-import { ball, config } from '.';
+import config from './config';
 import createDoubleFBO, { DoubleFBO } from './createDoubleFBO';
 import createFBO from './createFBO';
 import createTextureAsync from './createTextureAsync';
 import { WebGlExtensions } from './getWebGLContext';
 import AdvectionProgram from './programs/AdvectionProgram';
+import BaseWebGL from './programs/BaseWebGL';
 import BloomProgram from './programs/BloomProgram';
 import BlurProgram from './programs/BlurProgram';
 import CopyProgram from './programs/CopyProgram';
@@ -18,12 +19,11 @@ import { WebGLContext } from './programs/Program';
 import SplatProgram from './programs/SplatProgram';
 import SunraysProgram from './programs/SunraysProgram';
 import VorticityProgram from './programs/VorticityProgram';
-import WebGl from './programs/WebGl';
 import Quad from './Quad';
 import { CreateFboParams, DrawTarget, FBO } from './types';
 import { getResolution } from './utils';
 
-export class Renderer extends WebGl {
+export default class Renderer extends BaseWebGL {
   readonly ext: WebGlExtensions;
   readonly ditheringTexture = createTextureAsync(this.gl, ditheringImageUrl);
   readonly bgTexture = createTextureAsync(this.gl, bgImageUrl);
@@ -92,11 +92,11 @@ export class Renderer extends WebGl {
     this.pressure = createDoubleFBO(gl, simRes, rParams);
   }
 
-  render(target: DrawTarget) {
+  render(target: DrawTarget, [x, y] = [0.5, 0.5]) {
     if (config.BLOOM)
       this.bloomProgram.run(this.dye.read, this.bloom, config, this.quad);
     if (config.SUNRAYS) {
-      this.sunraysProgram.run(this.dye.read, this.dye.write, config.SUNRAYS_WEIGHT, [ball.x, ball.y], this.sunrays, this.quad);
+      this.sunraysProgram.run(this.dye.read, this.dye.write, config.SUNRAYS_WEIGHT, [x, y], this.sunrays, this.quad);
       this.blurProgram.run(this.sunrays, this.sunraysTemp, 1, this.quad);
     }
 
@@ -109,7 +109,7 @@ export class Renderer extends WebGl {
     this.displayProgram.run(target, this.dye.read, this.bloom, this.ditheringTexture, this.sunrays, config, this.quad);
   }
 
-  step(dt: number, dye: DoubleFBO) {
+  step(dt: number) {
     this.gl.disable(this.gl.BLEND);
 
     this.curlProgram.run(this.velocity, this.curl, this.quad);
@@ -129,8 +129,8 @@ export class Renderer extends WebGl {
 
     this.advectionProgram.advectVelocity(this.velocity, !!this.ext.supportLinearFiltering, dt, config.VELOCITY_DISSIPATION, this.quad);
 
-    this.advectionProgram.advectDye(this.velocity.read, dye, !!this.ext.supportLinearFiltering, config.DENSITY_DISSIPATION, this.quad);
-    dye.swap();
+    this.advectionProgram.advectDye(this.velocity.read, this.dye, !!this.ext.supportLinearFiltering, config.DENSITY_DISSIPATION, this.quad);
+    this.dye.swap();
   }
 
   sourceDrain(x: number, y: number, p: number, { r, g, b }: { r: number; g: number; b: number; }) {

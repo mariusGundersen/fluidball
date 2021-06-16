@@ -74,8 +74,9 @@ export default class DisplayProgram extends Program<typeof vertexShader, typeof 
   programs: WebGLProgram[] = [];
   activeProgram!: WebGLProgram;
 
-  constructor(gl: WebGLContext) {
+  constructor(gl: WebGLContext, keywords = ["SHADING", "BLOOM", "SUNRAYS"]) {
     super(gl, vertexShader, displayShaderSource);
+    this.setKeywords(keywords);
   }
 
   setKeywords(keywords: string[]) {

@@ -2,7 +2,12 @@ import SimplePeer, { Instance } from 'simple-peer';
 import { io } from 'socket.io-client';
 import { PeerConnection } from "./PeerConnection";
 
-export default function hostListener(): Promise<{ key: string, onClient(listener: (peer: PeerConnection) => void): void }> {
+export interface Result {
+  readonly key: string;
+  onClient(listener: (peer: PeerConnection) => void): void;
+}
+
+export default function hostListener(): Promise<Result> {
   const connectionListeners: ((peer: PeerConnection) => void)[] = [];
   const peers = new Map<string, Instance>()
   const socket = io();

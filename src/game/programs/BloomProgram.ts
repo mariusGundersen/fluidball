@@ -2,9 +2,9 @@ import createFBO from "../createFBO";
 import Quad from "../Quad";
 import { CreateFboParams, FBO, Size } from "../types";
 import { glsl } from "../utils";
+import BaseWebGL from "./BaseWebGL";
 import { Program, WebGLContext } from "./Program";
 import { vertexShader } from "./vertexShader";
-import WebGl from "./WebGl";
 
 const bloomPrefilterShader = glsl`${`
   precision mediump float;
@@ -74,7 +74,7 @@ export interface BloomConfig {
   BLOOM_INTENSITY: number
 }
 
-export default class BloomProgram extends WebGl {
+export default class BloomProgram extends BaseWebGL {
   private framebuffers: FBO[] = [];
   bloomPrefilterProgram = new Program(this.gl, vertexShader, bloomPrefilterShader);
   bloomBlurProgram = new Program(this.gl, vertexShader, bloomBlurShader);

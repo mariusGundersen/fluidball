@@ -1,0 +1,30 @@
+.joinGamePopup {
+  position: absolute;
+  z-index: 1;
+  margin: auto;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: large;
+}
+
+.joinGamePopup svg {
+  margin: 1em;
+}
+
+.container {
+  aspect-ratio: 2;
+  position: relative;
+  display: flex;
+  justify-content: stretch;
+  align-items: stretch;
+}
+
+.container canvas {
+  touch-action: none;
+}

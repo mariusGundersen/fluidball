@@ -1,9 +1,9 @@
 import Quad from "../Quad";
 import { FBO } from "../types";
 import { glsl } from "../utils";
+import BaseWebGL from "./BaseWebGL";
 import { Program, WebGLContext } from "./Program";
 import { vertexShader } from "./vertexShader";
-import WebGl from "./WebGl";
 
 const sunraysMaskShader = glsl`${`
   precision highp float;
@@ -56,7 +56,7 @@ const sunraysShader = glsl`${`
   }
 `}`;
 
-export default class SunraysProgram extends WebGl {
+export default class SunraysProgram extends BaseWebGL {
   sunraysMaskProgram = new Program(this.gl, vertexShader, sunraysMaskShader);
   sunraysProgram = new Program(this.gl, vertexShader, sunraysShader);
   constructor(gl: WebGLContext) {

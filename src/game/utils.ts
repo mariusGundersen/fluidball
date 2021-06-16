@@ -103,3 +103,27 @@ export function clamp(v: number, min = 0, max = 1) {
 export function glsl<T>(_: TemplateStringsArray, ...strings: [T]): T {
   return strings[0];
 }
+
+export function resizeCanvas(canvas: HTMLCanvasElement) {
+  let width = scaleByPixelRatio(canvas.clientWidth);
+  let height = scaleByPixelRatio(canvas.clientHeight);
+
+  if (canvas.width != width || canvas.height != height) {
+    canvas.width = width;
+    canvas.height = height;
+    return true;
+  }
+  return false;
+}
+
+export function randomSplat() {
+  const color = generateColor();
+  color.r *= 10.0;
+  color.g *= 10.0;
+  color.b *= 10.0;
+  const x = Math.random();
+  const y = Math.random();
+  const dx = 1000 * (Math.random() - 0.5);
+  const dy = 1000 * (Math.random() - 0.5);
+  return { x, y, dx, dy, color };
+}

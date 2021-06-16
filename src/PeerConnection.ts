@@ -17,5 +17,6 @@ export class PeerConnection {
   }
   onDisconnect(listener: () => void) {
     this.peer.on('close', listener);
+    this.peer.on('error', listener);
   }
 }

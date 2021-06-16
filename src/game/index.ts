@@ -1,45 +1,18 @@
 import { io } from 'socket.io-client';
+import config from './config';
 import Stats from "./fps";
 import getWebGLContext from "./getWebGLContext";
-import Quad from "./Quad";
-import { Renderer } from './Renderer';
+import Renderer from './Renderer';
 import startGUI, { isMobile } from "./startGUI";
 import touchInput from './touchInput';
 import { DrawTarget } from './types';
-import { clamp, dim, generateColor, HSVtoRGB, scaleByPixelRatio } from "./utils";
+import { clamp, dim, generateColor, HSVtoRGB, resizeCanvas } from "./utils";
+import WebGLScreen from './WebGLScreen';
 
 // Simulation section
 
 export const canvas = document.getElementsByTagName('canvas')[0];
-resizeCanvas();
-
-export let config = {
-  SIM_RESOLUTION: 128,
-  DYE_RESOLUTION: 1024,
-  CAPTURE_RESOLUTION: 512,
-  DENSITY_DISSIPATION: 0.3,
-  VELOCITY_DISSIPATION: 0.3,
-  PRESSURE: 0.8,
-  PRESSURE_ITERATIONS: 20,
-  CURL: 10,
-  SPLAT_RADIUS: 0.25,
-  SPLAT_FORCE: 6000,
-  SHADING: true,
-  COLORFUL: true,
-  COLOR_UPDATE_SPEED: 10,
-  PAUSED: false,
-  BACK_COLOR: { r: 0, g: 50, b: 0 },
-  TRANSPARENT: false,
-  BLOOM: true,
-  BLOOM_ITERATIONS: 8,
-  BLOOM_RESOLUTION: 256,
-  BLOOM_INTENSITY: 0.8,
-  BLOOM_THRESHOLD: 0.6,
-  BLOOM_SOFT_KNEE: 0.7,
-  SUNRAYS: true,
-  SUNRAYS_RESOLUTION: 196,
-  SUNRAYS_WEIGHT: 1.0,
-}
+resizeCanvas(canvas);
 
 const updatePointers = touchInput(canvas);
 
@@ -121,19 +94,7 @@ const players: Player[] = [
   }
 ];
 
-const screen: DrawTarget = {
-  get width() {
-    return gl.drawingBufferWidth;
-  },
-  get height() {
-    return gl.drawingBufferHeight;
-  },
-  drawTo(quad: Quad) {
-    gl.viewport(0, 0, this.width, this.height);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    quad.draw();
-  }
-}
+const screen: DrawTarget = new WebGLScreen(gl);
 
 let lastUpdateTime = window.performance.now();
 
@@ -153,7 +114,7 @@ function update(now: number) {
   applyInputs(dt);
   if (!config.PAUSED && !document.hidden) {
     updateBall(dt)
-    renderer.step(dt, renderer.dye);
+    renderer.step(dt);
   } else {
     console.log(dt);
   }
@@ -214,18 +175,6 @@ function updateBall(dt: number) {
     ball.y = clamp(ball.y, 0.02, 0.98);
   }
   ball.elm.style.transform = `translate(${ball.x * canvas.clientWidth}px, ${(1 - ball.y) * canvas.clientHeight}px)`;
-}
-
-function resizeCanvas() {
-  let width = scaleByPixelRatio(canvas.clientWidth);
-  let height = scaleByPixelRatio(canvas.clientHeight);
-
-  if (canvas.width != width || canvas.height != height) {
-    canvas.width = width;
-    canvas.height = height;
-    return true;
-  }
-  return false;
 }
 
 var socket = io();
