@@ -5,8 +5,22 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fluidball</title>
+  <style>
+    body {
+      margin: 0;
+      display: grid;
+      height: 100vh;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    #left, #right {
+      position: relative;
+    }
+  </style>
 </head>
 <body>
-<script src="./client.ts"></script>
+  <div id="left"></div>
+  <div id="right"></div>
+  <script src="./client.ts"></script>
 </body>
 </html>

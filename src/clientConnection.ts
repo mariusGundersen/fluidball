@@ -20,11 +20,11 @@ type State =
   | 'peerConnected'
   | 'error';
 
-export default function clientConnection(key: string): Promise<PeerConnection> {
+export default function clientConnection<Send, Receive>(key: string): Promise<PeerConnection<Send, Receive>> {
 
   console.log(key);
 
-  return new Promise<PeerConnection>((resolve, reject) => {
+  return new Promise<PeerConnection<Send, Receive>>((resolve, reject) => {
     let state: State = 'initial';
 
     const socket: Socket<ListenerEvents, EmitEvents> = io();

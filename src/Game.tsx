@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from "react";
+import { ClientToHost, HostToClient } from "./client";
 import game from "./game/game";
 import { PeerConnection } from "./PeerConnection";
 
 export interface Props {
-  peers: PeerConnection[];
+  peers: PeerConnection<HostToClient, ClientToHost>[];
 }
 
 export default function Game({ peers }: Props) {

@@ -1,3 +1,4 @@
+import { ClientToHost, HostToClient } from "../client";
 import { PeerConnection } from "../PeerConnection";
 import getWebGLContext from "./getWebGLContext";
 import Player from "./Player";
@@ -5,7 +6,7 @@ import Renderer from "./Renderer";
 import { clamp, dim, randomSplat, resizeCanvas } from "./utils";
 import WebGLScreen from "./WebGLScreen";
 
-export default function game(canvas: HTMLCanvasElement, peers: PeerConnection[]) {
+export default function game(canvas: HTMLCanvasElement, peers: PeerConnection<HostToClient, ClientToHost>[]) {
   resizeCanvas(canvas);
 
   const aspectRatio = canvas.width / canvas.height;
