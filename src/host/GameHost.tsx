@@ -2,22 +2,17 @@ import useArrayState from "@clave/use-array-state";
 import React, { useEffect, useRef } from "react";
 import Div100vh from "react-div-100vh";
 import QRCode from "react-qr-code";
-import { ClientToHost, HostToClient } from "./client";
-import Game from "./Game";
+import Game from "../Game";
+import { HostConnection } from "../types";
 import style from "./host.module.css";
-import { PeerConnection } from "./PeerConnection";
 
 export interface Props {
   gameKey: string;
-  onClient(
-    listener: (peer: PeerConnection<HostToClient, ClientToHost>) => void
-  ): void;
+  onClient(listener: (peer: HostConnection) => void): void;
 }
 
 export default function GameHost({ gameKey, onClient }: Props) {
-  const [peers, setPeers] = useArrayState<
-    PeerConnection<HostToClient, ClientToHost>
-  >([]);
+  const [peers, setPeers] = useArrayState<HostConnection>([]);
 
   const peerCount = useRef(0);
 
@@ -33,6 +28,7 @@ export default function GameHost({ gameKey, onClient }: Props) {
         peer.send("pong");
       });
 
+      console.log("send team", (peerCount.current % 2) as 0 | 1);
       peer.send("team", (peerCount.current % 2) as 0 | 1);
 
       peer.onDisconnect(() => {
@@ -45,10 +41,10 @@ export default function GameHost({ gameKey, onClient }: Props) {
     <>
       {peers.length < 2 && (
         <div className={style.joinGamePopup}>
-          <a href={`/client.html?key=${gameKey}`} target="_blank">
+          <a href={`/client/index.html?key=${gameKey}`} target="_blank">
             <QRCode
               value={new URL(
-                `/client.html?key=${gameKey}`,
+                `/client/index.html?key=${gameKey}`,
                 document.location.href
               ).toString()}
             />

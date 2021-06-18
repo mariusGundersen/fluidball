@@ -1,6 +1,7 @@
 import SimplePeer from "simple-peer";
 import { io, Socket } from "socket.io-client";
-import { PeerConnection } from "./PeerConnection";
+import { PeerConnection } from "../PeerConnection";
+import { ClientConnection } from "../types";
 
 interface ListenerEvents {
   signal(data: any): void,
@@ -20,11 +21,11 @@ type State =
   | 'peerConnected'
   | 'error';
 
-export default function clientConnection<Send, Receive>(key: string): Promise<PeerConnection<Send, Receive>> {
+export default function clientConnection(key: string): Promise<ClientConnection> {
 
   console.log(key);
 
-  return new Promise<PeerConnection<Send, Receive>>((resolve, reject) => {
+  return new Promise<ClientConnection>((resolve, reject) => {
     let state: State = 'initial';
 
     const socket: Socket<ListenerEvents, EmitEvents> = io();

@@ -1,5 +1,4 @@
-import { ClientToHost, HostToClient } from "../client";
-import { PeerConnection } from "../PeerConnection";
+import { HostConnection } from "../types";
 import { HSVtoRGB } from "./utils";
 
 
@@ -13,7 +12,7 @@ export default class Player {
   charge = 0;
   x: number
   y: number
-  constructor(x: number, y: number, hue: number, peer: PeerConnection<HostToClient, ClientToHost>) {
+  constructor(x: number, y: number, hue: number, peer: HostConnection) {
     this.color = HSVtoRGB(hue, 0.9, 0.9)
     this.x = x;
     this.y = y;

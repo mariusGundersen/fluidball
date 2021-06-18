@@ -1,3 +1,4 @@
+import EventEmitter from "events";
 import SimplePeer, { Instance } from "simple-peer";
 
 export interface Data {
@@ -24,20 +25,28 @@ export type EventObject<Map extends EventsMap, Type extends string> = {
 
 export class PeerConnection<Send extends EventsMap = DefaultEventsMap, Receive extends EventsMap = DefaultEventsMap> {
   private readonly peer: SimplePeer.Instance;
+  private readonly eventEmitter: EventEmitter;
   constructor(peer: Instance) {
     this.peer = peer;
+    this.eventEmitter = new EventEmitter();
+    this.peer.on('data', json => {
+      const data = JSON.parse(json);
+      return this.eventEmitter.emit(data.type, ...data.data);
+    });
   }
+
   send<E extends EventNames<Send>>(type: E, ...data: EventParams<Send, E>) {
     this.peer.send(JSON.stringify({ type, data }));
   }
 
-  onData<T extends EventNames<Receive>>(listener: (data: EventObject<Receive, T>) => void) {
-    this.peer.on('data', data => listener(JSON.parse(data)));
+  on<E extends EventNames<Receive>>(event: E, listener: (...data: EventParams<Receive, E>) => void) {
+    this.eventEmitter.on(event, listener as any);
   }
 
-  on<E extends EventNames<Receive>>(event: E, listener: (...data: EventParams<Receive, E>) => void) {
-    this.onData<E>(data => data.type === event && listener(...data.data));
+  once<E extends EventNames<Receive>>(event: E): Promise<EventParams<Receive, E>[0]> {
+    return new Promise(res => this.eventEmitter.once(event, res));
   }
+
   onDisconnect(listener: () => void) {
     this.peer.on('close', listener);
     this.peer.on('error', listener);

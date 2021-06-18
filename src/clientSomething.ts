@@ -1,22 +1,9 @@
 import nipplejs from 'nipplejs';
-import clientConnection from "./clientConnection";
+import clientConnection from "./client/clientConnection";
 
 const query = new URLSearchParams(document.location.search);
 
-export interface ClientToHost {
-  ping(): void,
-  greeting(message: string): void,
-  move(pos: { x: number, y: number }): void
-  aim(pos: { x: number, y: number }): void
-  kick(): void
-}
-
-export interface HostToClient {
-  pong(): void,
-  team(team: 0 | 1): void
-}
-
-clientConnection<ClientToHost, HostToClient>(query.get('key') ?? 'ABCD').then(client => {
+clientConnection(query.get('key') ?? 'ABCD').then(client => {
   client.on('pong', () => {
     console.timeEnd('ping');
     setTimeout(sendPing, 1000);
