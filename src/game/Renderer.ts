@@ -5,7 +5,9 @@ import createDoubleFBO, { DoubleFBO } from './createDoubleFBO';
 import createFBO from './createFBO';
 import createTextureAsync from './createTextureAsync';
 import { WebGlExtensions } from './getWebGLContext';
+import Player from './Player';
 import AdvectionProgram from './programs/AdvectionProgram';
+import BallProgram from './programs/BallProgram';
 import BaseWebGL from './programs/BaseWebGL';
 import BloomProgram from './programs/BloomProgram';
 import BlurProgram from './programs/BlurProgram';
@@ -28,6 +30,7 @@ export default class Renderer extends BaseWebGL {
   readonly ditheringTexture = createTextureAsync(this.gl, ditheringImageUrl);
   readonly bgTexture = createTextureAsync(this.gl, bgImageUrl);
   readonly blurProgram = new BlurProgram(this.gl);
+  readonly ballProgram = new BallProgram(this.gl);
   readonly copyProgram = new CopyProgram(this.gl);
   readonly bloomProgram = new BloomProgram(this.gl);
   readonly sunraysProgram = new SunraysProgram(this.gl);
@@ -92,11 +95,11 @@ export default class Renderer extends BaseWebGL {
     this.pressure = createDoubleFBO(gl, simRes, rParams);
   }
 
-  render(target: DrawTarget, [x, y] = [0.5, 0.5]) {
+  render(target: DrawTarget, ball: [number, number] = [0.5, 0.5], players: Player[] = []) {
     if (config.BLOOM)
       this.bloomProgram.run(this.dye.read, this.bloom, config, this.quad);
     if (config.SUNRAYS) {
-      this.sunraysProgram.run(this.dye.read, this.dye.write, config.SUNRAYS_WEIGHT, [x, y], this.sunrays, this.quad);
+      this.sunraysProgram.run(this.dye.read, this.dye.write, config.SUNRAYS_WEIGHT, ball, this.sunrays, this.quad);
       this.blurProgram.run(this.sunrays, this.sunraysTemp, 1, this.quad);
     }
 
@@ -107,6 +110,10 @@ export default class Renderer extends BaseWebGL {
     this.copyProgram.run(this.bgTexture, target, 1, this.quad);
 
     this.displayProgram.run(target, this.dye.read, this.bloom, this.ditheringTexture, this.sunrays, config, this.quad);
+    this.ballProgram.run(target, ball, 0.015, { r: 0, g: 0, b: 0 }, this.quad);
+    for (const player of players) {
+      this.ballProgram.run(target, [player.x, player.y], 0.015, player.color, this.quad);
+    }
   }
 
   step(dt: number) {
@@ -151,6 +158,25 @@ export default class Renderer extends BaseWebGL {
     this.splatProgram.splat(this.dye, [x, y], [r, g, b], config.SPLAT_RADIUS / radius, aspectRatio, this.quad);
   }
 
+  private readonly SIZE = 4;
+  private readonly velocityPixels = new Float32Array(this.SIZE * this.SIZE * 4);
+  getVelocityAt(x: number, y: number, dt: number) {
+    const velocity = this.velocity;
+    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, velocity.read.fbo);
+    this.gl.readPixels(velocity.width * x - this.SIZE / 2, velocity.height * y - this.SIZE / 2, this.SIZE, this.SIZE, this.gl.RGBA, this.gl.FLOAT, this.velocityPixels);
 
+    let vx = 0, vy = 0;
+    for (let i = 0; i < this.velocityPixels.length; i += 4) {
+      vx += this.velocityPixels[i];
+      vy += this.velocityPixels[i + 1];
+    }
 
+    vx /= this.SIZE * this.SIZE;
+    vy /= this.SIZE * this.SIZE;
+
+    const dx = vx / velocity.width * dt;
+    const dy = vy / velocity.height * dt;
+
+    return { dx, dy };
+  }
 }

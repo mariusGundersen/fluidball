@@ -2,7 +2,7 @@ import useArrayState from "@clave/use-array-state";
 import React, { useEffect, useRef } from "react";
 import Div100vh from "react-div-100vh";
 import QRCode from "react-qr-code";
-import Game from "../Game";
+import GameCanvas from "../GameCanvas";
 import { HostConnection } from "../types";
 import style from "./host.module.css";
 
@@ -21,15 +21,12 @@ export default function GameHost({ gameKey, onClient }: Props) {
   }, [peers]);
 
   useEffect(() => {
-    onClient((peer) => {
+    onClient(async (peer) => {
       setPeers.append(peer);
 
-      peer.on("ping", () => {
-        peer.send("pong");
-      });
+      await new Promise((r) => setTimeout(r, 1000));
 
-      console.log("send team", (peerCount.current % 2) as 0 | 1);
-      peer.send("team", (peerCount.current % 2) as 0 | 1);
+      peer.send("team", ((peerCount.current + 1) % 2) as 0 | 1);
 
       peer.onDisconnect(() => {
         console.log("disconnected");
@@ -53,7 +50,7 @@ export default function GameHost({ gameKey, onClient }: Props) {
         </div>
       )}
       <Div100vh className={style.container}>
-        {peers.length === 2 && <Game peers={peers} />}
+        <GameCanvas peers={peers} />
       </Div100vh>
     </>
   );

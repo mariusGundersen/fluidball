@@ -12,7 +12,9 @@ export default class Player {
   charge = 0;
   x: number
   y: number
+  private readonly initial: { x: number; y: number; };
   constructor(x: number, y: number, hue: number, peer: HostConnection) {
+    this.initial = { x, y };
     this.color = HSVtoRGB(hue, 0.9, 0.9)
     this.x = x;
     this.y = y;
@@ -31,5 +33,9 @@ export default class Player {
     peer.on('kick', () => {
       this.active = false;
     });
+  }
+  reset() {
+    this.x = this.initial.x;
+    this.y = this.initial.y;
   }
 }
