@@ -62,6 +62,7 @@ export default class AdvectionProgram extends Program<typeof vertexShader, typeo
   }
 
   advectDye(velocity: FBO, dye: DoubleFBO, supportLinearFiltering: boolean, dissipation: number, quad: Quad) {
+    this.uniforms.texelSize = [velocity.texelSizeX, velocity.texelSizeY];
     if (!supportLinearFiltering)
       this.uniforms.dyeTexelSize = [dye.texelSizeX, dye.texelSizeY];
     this.uniforms.uVelocity = velocity.attach(0);

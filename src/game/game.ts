@@ -1,8 +1,8 @@
 import { HostConnection } from "../types";
 import getWebGLContext from "./getWebGLContext";
-import Player from "./Player";
+import Player, { MAX_CHARGE } from "./Player";
 import Renderer from "./Renderer";
-import { clamp, dim, randomSplat, resizeCanvas } from "./utils";
+import { clamp, randomSplat, resizeCanvas } from "./utils";
 import WebGLScreen from "./WebGLScreen";
 
 export default class Game {
@@ -101,35 +101,36 @@ export default class Game {
       player.x = clamp(player.x, player.team === 0 ? 0.05 : 0.10, player.team === 0 ? 0.90 : 0.95);
       player.y = clamp(player.y, 0.01, 0.99);
 
-      const MAX_CHARGE = 16 * 5;
-
       if (player.charge >= MAX_CHARGE) {
         const distance = player.distanceTo(this.ball);
-        if (distance < 0.03) {
+        if (distance < player.radius * 2) {
           player.aimx = (this.ball.x - player.x) / distance;
           player.aimy = (this.ball.y - player.y) / distance;
-          player.active = false;
+          player.aiming = true;
         }
       }
 
       const aimx = player.aimx;
       const aimy = player.aimy * aspectRatio;
 
-      if (player.active) {
-        this.renderer.splat(player.x, player.y, 0, 0, dim(player.color, 10), 5000);
-      } else if (player.charge) {
-        const KICK_FORCE = 10;
-        this.renderer.splat(player.x, player.y, aimx * delta * KICK_FORCE, aimy * delta * KICK_FORCE, player.color, 100);
+      if (player.aiming) {
+        if (player.charge) {
+          const KICK_FORCE = 10;
+          this.renderer.splat(player.x, player.y, aimx * delta * KICK_FORCE, aimy * delta * KICK_FORCE, player.color, 100);
+          player.charge = Math.max(0, player.charge - delta);
+        }
       } else {
-        this.renderer.splat(player.x, player.y, 0, 0, dim(player.color, 10), 5000);
-      }
-
-      this.renderer.sourceDrain(player.x + aimx / 100, player.y + aimy / 100, player.active ? -150 : -5, player.color);
-
-      if (player.active) {
+        const mx = player.charge / MAX_CHARGE * (Math.random() - 0.5) * 3 * 0.015;
+        const my = player.charge / MAX_CHARGE * (Math.random() - 0.5) * 3 * 0.015;
+        this.renderer.splat(
+          player.x + mx,
+          player.y + my,
+          my * 1000,
+          -mx * 1000,
+          player.color,
+          1000);
+        this.renderer.sourceDrain(player.x, player.y, -100, player.color);
         player.charge = Math.min(MAX_CHARGE, player.charge + delta / 10);
-      } else {
-        player.charge = Math.max(0, player.charge - delta);
       }
     }
   }

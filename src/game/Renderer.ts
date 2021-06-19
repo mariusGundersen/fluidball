@@ -108,13 +108,13 @@ export default class Renderer extends BaseWebGL {
     this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
     this.gl.enable(this.gl.BLEND);
 
-    //drawColor(target, normalizeColor(config.BACK_COLOR));
+    //this.colorProgram.run(target, { r: 0, g: 0, b: 0 }, this.quad);
     this.copyProgram.run(this.bgTexture, target, 1, this.quad);
 
     this.displayProgram.run(target, this.dye.read, this.bloom, this.ditheringTexture, this.sunrays, config, this.quad);
     this.ballProgram.run(target, ball, 0.015, { r: 0, g: 0, b: 0 }, this.quad);
     for (const player of players) {
-      this.ballProgram.run(target, [player.x, player.y], 0.015, player.color, this.quad);
+      this.ballProgram.run(target, [player.x, player.y], player.radius, player.color, this.quad);
     }
   }
 
