@@ -1,6 +1,6 @@
 import { diff } from "fast-array-diff";
 import React, { useEffect, useRef } from "react";
-import Game from "./game/game";
+import Game from "./game/Game";
 import { HostConnection } from "./types";
 
 export interface Props {
@@ -17,6 +17,10 @@ export default function GameCanvas({ peers }: Props) {
       for (const add of peers) {
         game.current!.addPlayer(add);
       }
+
+      return () => {
+        game.current!.destroy();
+      };
     }
   }, []);
 

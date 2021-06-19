@@ -1,15 +1,18 @@
 import { PeerConnection } from "./PeerConnection";
 
 export interface ClientToHost {
-  ping(): void,
-  greeting(message: string): void,
-  move(pos: { x: number, y: number }): void
-  aim(pos: { x: number, y: number }): void
-  kick(): void
+  move(pos: {
+    x: number,
+    y: number,
+  },
+    aim: {
+      x: number,
+      y: number
+    } | null): void
 }
 
 export interface HostToClient {
-  pong(): void,
+  move_ack(): void,
   team(team: 0 | 1): void
 }
 

@@ -3,7 +3,8 @@ import { HSVtoRGB } from "./utils";
 
 
 export default class Player {
-  color: { r: number; g: number; b: number; };
+  readonly color: { r: number; g: number; b: number; };
+  readonly team: number;
   dy = 0;
   dx = 0;
   aimx = 0;
@@ -12,30 +13,34 @@ export default class Player {
   charge = 0;
   x: number
   y: number
-  private readonly initial: { x: number; y: number; };
-  constructor(x: number, y: number, hue: number, peer: HostConnection) {
-    this.initial = { x, y };
-    this.color = HSVtoRGB(hue, 0.9, 0.9)
-    this.x = x;
-    this.y = y;
+  readonly destroy: () => void;
+  constructor(team: number, peer: HostConnection) {
+    this.team = team;
+    this.x = team * 0.6 + 0.2;
+    this.y = 0.5
 
-    peer.on('move', ({ x, y }) => {
+    this.color = HSVtoRGB(team === 0 ? 0 : 2 / 3, 0.9, 0.9);
+
+    this.destroy = peer.on('move', ({ x, y }, aim) => {
       this.dx = x * 2;
       this.dy = y * 2;
-    });
-
-    peer.on('aim', ({ x, y }) => {
-      this.aimx = x;
-      this.aimy = y;
-      this.active = true;
-    });
-
-    peer.on('kick', () => {
-      this.active = false;
+      this.active = !!aim;
+      if (aim) {
+        this.aimx = aim.x;
+        this.aimy = aim.y;
+      }
+      peer.send('move_ack');
     });
   }
+
+  distanceTo({ x, y }: { x: number, y: number }) {
+    const dx = this.x - x;
+    const dy = this.y - y;
+
+    return Math.sqrt(dx * dx + dy * dy)
+  }
   reset() {
-    this.x = this.initial.x;
-    this.y = this.initial.y;
+    this.x = this.team * 0.6 + 0.2;
+    this.y = 0.5
   }
 }

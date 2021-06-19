@@ -41,6 +41,7 @@ export class PeerConnection<Send extends EventsMap = DefaultEventsMap, Receive e
 
   on<E extends EventNames<Receive>>(event: E, listener: (...data: EventParams<Receive, E>) => void) {
     this.eventEmitter.on(event, listener as any);
+    return () => this.eventEmitter.off(event, listener as any);
   }
 
   once<E extends EventNames<Receive>>(event: E): Promise<EventParams<Receive, E>[0]> {

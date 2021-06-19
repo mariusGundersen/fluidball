@@ -6,3 +6,36 @@
 .gamepad > div {
   position: relative;
 }
+
+.gamepad .rotate {
+  grid-column: span 2;
+  background-color: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 25vh;
+}
+
+.gamepad .rotate svg {
+  width: 1em;
+  height: 1em;
+  animation: rotate 2s cubic-bezier(0.47, -0.38, 0.52, 1.09) infinite;
+}
+
+@media (orientation: landscape) {
+  .gamepad .rotate {
+    display: none;
+  }
+}
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  66% {
+    transform: rotate(90deg);
+  }
+  100% {
+    transform: rotate(90deg);
+  }
+}

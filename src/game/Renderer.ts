@@ -11,6 +11,7 @@ import BallProgram from './programs/BallProgram';
 import BaseWebGL from './programs/BaseWebGL';
 import BloomProgram from './programs/BloomProgram';
 import BlurProgram from './programs/BlurProgram';
+import ColorProgram from './programs/ColorProgram';
 import CopyProgram from './programs/CopyProgram';
 import CurlProgram from './programs/CurlProgram';
 import DisplayProgram from './programs/DisplayProgram';
@@ -31,6 +32,7 @@ export default class Renderer extends BaseWebGL {
   readonly bgTexture = createTextureAsync(this.gl, bgImageUrl);
   readonly blurProgram = new BlurProgram(this.gl);
   readonly ballProgram = new BallProgram(this.gl);
+  readonly colorProgram = new ColorProgram(this.gl);
   readonly copyProgram = new CopyProgram(this.gl);
   readonly bloomProgram = new BloomProgram(this.gl);
   readonly sunraysProgram = new SunraysProgram(this.gl);
@@ -138,6 +140,12 @@ export default class Renderer extends BaseWebGL {
 
     this.advectionProgram.advectDye(this.velocity.read, this.dye, !!this.ext.supportLinearFiltering, config.DENSITY_DISSIPATION, this.quad);
     this.dye.swap();
+  }
+
+  reset() {
+    this.colorProgram.run(this.velocity.read, { r: 0, g: 0, b: 0 }, this.quad);
+    this.colorProgram.run(this.pressure.read, { r: 0, g: 0, b: 0 }, this.quad);
+    this.colorProgram.run(this.dye.read, { r: 0, g: 0, b: 0 }, this.quad);
   }
 
   sourceDrain(x: number, y: number, p: number, { r, g, b }: { r: number; g: number; b: number; }) {

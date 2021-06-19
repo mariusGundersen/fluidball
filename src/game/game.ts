@@ -10,6 +10,7 @@ export default class Game {
   private readonly renderer: Renderer;
   private readonly screen: WebGLScreen;
   private lastUpdateTime: number;
+  private playing = true;
   private readonly ball = {
     x: 0.5,
     y: 0.5,
@@ -31,16 +32,26 @@ export default class Game {
     this.multipleSplats(20);
   }
 
+  destroy() {
+    this.playing = false;
+    for (const player of this.players) {
+      player.destroy();
+    }
+
+  }
+
   removePlayerAt(index: number) {
     this.players.splice(index, 1);
   }
 
   addPlayer(peer: HostConnection) {
-    const index = this.players.length;
-    this.players.push(new Player(index * 0.6 + 0.2, 0.5, (index * 2) / 3, peer));
+    const team = this.players.length % 2;
+
+    this.players.push(new Player(team, peer));
   }
 
   reset() {
+    this.renderer.reset();
     this.ball.x = 0.5;
     this.ball.y = 0.5;
     this.ball.inGoal = false;
@@ -67,81 +78,81 @@ export default class Game {
 
     this.renderer.step(dt);
     this.renderer.render(this.screen, [this.ball.x, this.ball.y], this.players);
-    requestAnimationFrame(now => this.update(now));
+
+    if (this.playing) {
+      requestAnimationFrame(now => this.update(now));
+    }
   }
 
 
   applyInputs(aspectRatio: number, dt: number) {
 
+    const delta = dt * 1_000;
+
     for (const player of this.players) {
       let dx = player.dx * dt;
       let dy = player.dy * dt * aspectRatio;
-
-      let aimx = player.aimx;
-      let aimy = player.aimy * aspectRatio;
-
-      const distX = player.x - this.ball.x;
-      const distY = player.y - this.ball.y;
-
-      if (player.charge > 500 && Math.sqrt(distX * distX + distY * distY) < 0.03) {
-        player.active = false;
-      }
-
-      if (player.active) {
-        this.renderer.splat(player.x, player.y, 0, 0, dim(player.color, 10), 5000);
-      } else if (player.charge) {
-        console.log('kick', player.charge, aimx, aimy);
-        this.renderer.splat(player.x, player.y, player.charge * aimx, player.charge * aimy, player.color, 50);
-        this.players[0].aimx = 0;
-        this.players[0].aimy = 0;
-      } else {
-        this.renderer.splat(player.x, player.y, 0, 0, dim(player.color, 10), 5000);
-      }
-
-      if (dx * dy != 0) {
-        dx *= Math.SQRT1_2;
-        dy *= Math.SQRT1_2;
-      }
 
       dx /= 10;
       dy /= 10;
 
       player.x += dx;
       player.y += dy;
-      player.x = clamp(player.x, 0.10, 0.90);
+      player.x = clamp(player.x, player.team === 0 ? 0.05 : 0.10, player.team === 0 ? 0.90 : 0.95);
       player.y = clamp(player.y, 0.01, 0.99);
+
+      const MAX_CHARGE = 16 * 5;
+
+      if (player.charge >= MAX_CHARGE) {
+        const distance = player.distanceTo(this.ball);
+        if (distance < 0.03) {
+          player.aimx = (this.ball.x - player.x) / distance;
+          player.aimy = (this.ball.y - player.y) / distance;
+          player.active = false;
+        }
+      }
+
+      const aimx = player.aimx;
+      const aimy = player.aimy * aspectRatio;
+
+      if (player.active) {
+        this.renderer.splat(player.x, player.y, 0, 0, dim(player.color, 10), 5000);
+      } else if (player.charge) {
+        const KICK_FORCE = 10;
+        this.renderer.splat(player.x, player.y, aimx * delta * KICK_FORCE, aimy * delta * KICK_FORCE, player.color, 100);
+      } else {
+        this.renderer.splat(player.x, player.y, 0, 0, dim(player.color, 10), 5000);
+      }
 
       this.renderer.sourceDrain(player.x + aimx / 100, player.y + aimy / 100, player.active ? -150 : -5, player.color);
 
       if (player.active) {
-        player.charge = Math.min(510, player.charge + dt / 16 * 1_000 * 50);
+        player.charge = Math.min(MAX_CHARGE, player.charge + delta / 10);
       } else {
-        player.charge = 0;
+        player.charge = Math.max(0, player.charge - delta);
       }
-
-      //player.elm.style.transform = `translate(${player.x * canvas.clientWidth}px, ${(1 - player.y) * canvas.clientHeight}px)`;
     }
+  }
+
+  goalScored() {
+    this.multipleSplats(20);
+    this.ball.inGoal = true;
+    setTimeout(() => this.reset(), 3000);
   }
 
   updateBall(dt: number) {
     const { dx, dy } = this.renderer.getVelocityAt(this.ball.x, this.ball.y, dt);
 
-
     if (!this.ball.inGoal) {
       if (this.ball.x < 0.95 && this.ball.x + dx > 0.95) {
         const y = this.ball.y + dy * (0.95 - this.ball.x) / dx;
         if (y > 0.44 && y < 0.56) {
-          this.multipleSplats(20);
-          this.ball.inGoal = true;
-          setTimeout(() => this.reset(), 3000);
+          this.goalScored();
         }
-      }
-      if (this.ball.x > 0.05 && this.ball.x + dx < 0.05) {
+      } else if (this.ball.x > 0.05 && this.ball.x + dx < 0.05) {
         const y = this.ball.y + dy * (0.05 - this.ball.x) / dx;
         if (y > 0.44 && y < 0.56) {
-          this.multipleSplats(20);
-          this.ball.inGoal = true;
-          setTimeout(() => this.reset(), 3000);
+          this.goalScored();
         }
       }
     }
@@ -161,6 +172,5 @@ export default class Game {
       this.ball.x = clamp(this.ball.x, 0.05, 0.95);
       this.ball.y = clamp(this.ball.y, 0.02, 0.98);
     }
-    //this.ball.elm.style.transform = `translate(${this.ball.x * canvas.clientWidth}px, ${(1 - this.ball.y) * canvas.clientHeight}px)`;
   }
 }
