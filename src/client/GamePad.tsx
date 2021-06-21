@@ -18,7 +18,7 @@ export default function GamePad({ color, connection }: GamePadProps) {
     let aim: { x: number; y: number } | null = null;
 
     const leftJoystick = nipplejs.create({
-      color,
+      color: "white",
       zone: leftPad.current!,
     });
 
@@ -31,7 +31,7 @@ export default function GamePad({ color, connection }: GamePadProps) {
     });
 
     const rightJoystick = nipplejs.create({
-      color,
+      color: "white",
       zone: rightPad.current!,
     });
 
@@ -86,8 +86,8 @@ export default function GamePad({ color, connection }: GamePadProps) {
           />
         </svg>
       </div>
-      <div ref={leftPad}></div>
-      <div ref={rightPad}></div>
+      <div ref={leftPad} style={{ background: color }}></div>
+      <div ref={rightPad} style={{ background: color }}></div>
     </Div100vh>
   );
 }

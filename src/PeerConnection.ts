@@ -48,8 +48,8 @@ export class PeerConnection<Send extends EventsMap = DefaultEventsMap, Receive e
     return new Promise(res => this.eventEmitter.once(event, res));
   }
 
-  onDisconnect(listener: () => void) {
+  onDisconnect(listener: (message?: string) => void) {
     this.peer.on('close', listener);
-    this.peer.on('error', listener);
+    this.peer.on('error', e => listener(e.message));
   }
 }

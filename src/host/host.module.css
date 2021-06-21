@@ -13,8 +13,15 @@
   font-size: large;
 }
 
-.joinGamePopup a {
+.joinGamePopup > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   background: white;
+  border-radius: 5px;
+  box-shadow: 0 5px 5px 5px #00000088;
+  padding: 1em;
 }
 
 .joinGamePopup svg {
@@ -22,13 +29,20 @@
 }
 
 .container {
-  aspect-ratio: 2;
   position: relative;
   display: flex;
   justify-content: stretch;
   align-items: stretch;
 }
 
+.container > div {
+  aspect-ratio: 2 / 1;
+  display: grid;
+  justify-content: stretch;
+  align-items: stretch;
+}
+
 .container canvas {
+  aspect-ratio: 2 / 1;
   touch-action: none;
 }

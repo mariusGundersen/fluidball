@@ -34,19 +34,30 @@ export default function GameHost({ gameKey, onClient }: Props) {
       });
     });
   }, []);
+
   return (
     <>
       {peers.length < 2 && (
         <div className={style.joinGamePopup}>
-          <a href={`/client/index.html?key=${gameKey}`} target="_blank">
-            <QRCode
-              value={new URL(
-                `/client/index.html?key=${gameKey}`,
-                document.location.href
-              ).toString()}
-            />
-          </a>
-          <span>{peers.length}</span>
+          <div>
+            <a href={`/client/index.html?key=${gameKey}`} target="_blank">
+              <QRCode
+                value={new URL(
+                  `/client/index.html?key=${gameKey}`,
+                  document.location.href
+                ).toString()}
+              />
+            </a>
+            {peers.length == 0 ? (
+              <span style={{ fontWeight: "bold", color: "red" }}>
+                Waiting for player 1
+              </span>
+            ) : (
+              <span style={{ fontWeight: "bold", color: "blue" }}>
+                Waiting for player 2
+              </span>
+            )}
+          </div>
         </div>
       )}
       <Div100vh className={style.container}>
