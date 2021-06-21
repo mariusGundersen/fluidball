@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
 import { ClientConnection } from "../types";
-//import style from "./client.module.css";
 import clientConnection from "./clientConnection";
 import GamePad from "./GamePad";
 
@@ -18,6 +17,7 @@ function Client() {
 
   useEffect(() => {
     connection?.once("team").then(setTeam);
+    connection?.onDisconnect(() => setConnection(undefined));
   }, [connection]);
 
   console.log("team", team);
