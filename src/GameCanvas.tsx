@@ -1,6 +1,6 @@
 import { diff } from "fast-array-diff";
 import React, { useEffect, useRef } from "react";
-import Game from "./game/GameBla";
+import Game from "./game/Game";
 import { HostConnection } from "./types";
 
 export interface Props {
